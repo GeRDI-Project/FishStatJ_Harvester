@@ -37,12 +37,13 @@ import javax.servlet.annotation.WebListener;
 public class FishStatJContextListener extends ContextListener<FishStatJHarvester>
 {
 
-	@Override
-	protected List<AbstractParameter<?>> getHarvesterSpecificParameters() {
-		StringParameter versionParam = new StringParameter(FishstatjParameterConstants.VERSION_KEY, FishstatjParameterConstants.VERSION_DEFAULT);
+    @Override
+    protected List<AbstractParameter<?>> getHarvesterSpecificParameters()
+    {
+        StringParameter versionParam = new StringParameter(FishstatjParameterConstants.VERSION_KEY, FishstatjParameterConstants.VERSION_DEFAULT);
         StringParameter languageParam = new StringParameter(FishstatjParameterConstants.LANGUAGE_KEY, FishstatjParameterConstants.LANGUAGE_DEFAULT);
 
         return Arrays.asList(versionParam, languageParam);
-	}
-	
+    }
+
 }
