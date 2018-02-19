@@ -22,7 +22,9 @@ import de.gerdiproject.harvest.IDocument;
 
 
 import de.gerdiproject.json.datacite.DataCiteJson;
+import de.gerdiproject.json.datacite.Description;
 import de.gerdiproject.json.datacite.Title;
+import de.gerdiproject.json.datacite.enums.DescriptionType;
 import de.gerdiproject.json.datacite.extension.WebLink;
 import de.gerdiproject.json.datacite.extension.enums.WebLinkType;
 //import de.gerdiproject.harvest.fishstatj.constants.FishstatjDataCiteConstants;
@@ -38,6 +40,7 @@ import java.util.List;
 import org.jsoup.nodes.Attributes;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
 
 
 /**
@@ -55,6 +58,7 @@ public class FishStatJHarvester extends AbstractListHarvester<Element> // TODO c
     public static final String REPOSITORY_ID = "FAOSTAT";
     public static final List<String> DISCIPLINES = Collections.unmodifiableList(Arrays.asList("Statistics"));
     public static final String LOGO_URL = "http://www.fao.org/figis/website/assets/images/templates/shared/fao_logo.gif";
+    public static final String DESCRIPTION_FORMAT = "%s : %s";
 
 
     public FishStatJHarvester()
@@ -108,6 +112,86 @@ public class FishStatJHarvester extends AbstractListHarvester<Element> // TODO c
     }
 
 
+    public List<Description> descriptionParser(String url)
+    {
+        List<Description> descriptions = new LinkedList<>();
+        Document doc = httpRequester.getHtmlFromUrl(url);
+        //choose from webpage element with class allWidth and all his children
+        Elements descriptionNames = doc.select("#allWidth").first().children();
+        //define previousTextOfItem as zero because for first entry it will be empty
+        String previousTextOfItem = "";
+
+        for (Element item : descriptionNames) {
+            //compare previousTextOfItem with all text that define description, if true, add to the description text after previousTextOfItem
+
+            if (previousTextOfItem.equals("Collection Overview   ")) {
+                Description description = new Description(String.format(DESCRIPTION_FORMAT, previousTextOfItem, item.text()), DescriptionType.Abstract);
+                descriptions.add(description);
+            }
+
+            if (previousTextOfItem.contains("Status")) {
+                Description description = new Description(String.format(DESCRIPTION_FORMAT, previousTextOfItem, item.text()), DescriptionType.Abstract);
+                descriptions.add(description);
+
+            }
+
+            if (previousTextOfItem.contains("Typical Usage")) {
+                Description description = new Description(String.format(DESCRIPTION_FORMAT, previousTextOfItem, item.text()), DescriptionType.Abstract);
+                descriptions.add(description);
+
+            }
+
+            if (previousTextOfItem.contains("Audience")) {
+                Description description = new Description(String.format(DESCRIPTION_FORMAT, previousTextOfItem, item.text()), DescriptionType.Abstract);
+                descriptions.add(description);
+
+            }
+
+            if (previousTextOfItem.contains("Data Security Access Rules")) {
+
+                Description description = new Description(String.format(DESCRIPTION_FORMAT, previousTextOfItem, item.text()), DescriptionType.Abstract);
+                descriptions.add(description);
+
+            }
+
+            if (previousTextOfItem.contains("Dataset Overview")) {
+                Description description = new Description(String.format(DESCRIPTION_FORMAT, previousTextOfItem, item.text()), DescriptionType.Abstract);
+                descriptions.add(description);
+
+            }
+
+            previousTextOfItem = item.text();
+            //logger.info("prvText: "+previousTextOfItem);
+
+        }
+
+
+        return descriptions;
+    }
+
+
+
+
+
+    public List<WebLink> weblinksParser(String url)
+    {
+        List<WebLink> weblinks = new LinkedList<>();
+
+        WebLink viewLink = new WebLink(url);
+        viewLink.setName("View website");
+        viewLink.setType(WebLinkType.ViewURL);
+        weblinks.add(viewLink);
+
+
+        WebLink logoLink = new WebLink(LOGO_URL);
+        logoLink.setName("Logo");
+        logoLink.setType(WebLinkType.ProviderLogoURL);
+        weblinks.add(logoLink);
+
+        return weblinks;
+    }
+
+
 
 
     protected List<IDocument> harvestEntry(Element entry)
@@ -124,24 +208,15 @@ public class FishStatJHarvester extends AbstractListHarvester<Element> // TODO c
         //parse titles
         document.setTitles(titleParser(url));
 
+        //parse description
+        document.setDescriptions(descriptionParser(url));
 
         document.setPublisher(PROVIDER);
         document.setResearchDisciplines(DISCIPLINES);
         document.setRepositoryIdentifier(REPOSITORY_ID);
 
-        List<WebLink> links = new LinkedList<>();
-
-        WebLink viewLink = new WebLink(url);
-        viewLink.setName("View website");
-        viewLink.setType(WebLinkType.ViewURL);
-        links.add(viewLink);
-
-
-        WebLink logoLink = new WebLink(LOGO_URL);
-        logoLink.setName("Logo");
-        logoLink.setType(WebLinkType.ProviderLogoURL);
-        links.add(logoLink);
-        document.setWebLinks(links);
+        //parse weblinks
+        document.setWebLinks(weblinksParser(url));
 
         return Arrays.asList(document);
     }
