@@ -54,11 +54,13 @@ public class FishStatJHarvester extends AbstractListHarvester<Element> // TODO c
      * Default Constructor that is called by the MainContext.
      */
     private final static String BASE_URL = "http://www.fao.org/fishery/statistics/collections/en";
+    private final static String SITE_URL = "http://www.fao.org%s";
     private static final String PROVIDER = "Food and Agriculture Organization of the United Nations (FAO)";
     public static final String REPOSITORY_ID = "FAOSTAT";
     public static final List<String> DISCIPLINES = Collections.unmodifiableList(Arrays.asList("Statistics"));
     public static final String LOGO_URL = "http://www.fao.org/figis/website/assets/images/templates/shared/fao_logo.gif";
     public static final String DESCRIPTION_FORMAT = "%s : %s";
+    public static final String ATTRIBUTE_HREF = "href";
 
 
     public FishStatJHarvester()
@@ -80,7 +82,7 @@ public class FishStatJHarvester extends AbstractListHarvester<Element> // TODO c
         //Check if url link in html document doesn't return empty http request, add this document for entries
         for (Element item : entries_primary) {
             Attributes attributes = item.attributes();
-            String url = attributes.get("href");
+            String url = attributes.get(ATTRIBUTE_HREF);
             Document doc1 = httpRequester.getHtmlFromUrl(url);
 
             if (doc1.hasText())
@@ -177,6 +179,43 @@ public class FishStatJHarvester extends AbstractListHarvester<Element> // TODO c
     {
         List<WebLink> weblinks = new LinkedList<>();
 
+        Document doc = httpRequester.getHtmlFromUrl(url);
+        //choose from webpage element with class allWidth and all his children
+        Elements webPage = doc.select("#allWidth").first().children();
+        String previousTextOfItem = "";
+
+        //iterate all elements
+        for (Element itemwebPage : webPage) {
+            //find element with text what we need
+            if (previousTextOfItem.contains("Available Formats & Information Products")) {
+                Elements children = itemwebPage.children().select("a");
+
+                for (Element itemChildren : children) {
+                    Attributes attributes = itemChildren.attributes();
+
+                    //need to check does this link work or not, some links not absolute, but relative, check it, if it is relative link, add SITE_URL
+                    if (attributes.get(ATTRIBUTE_HREF).contains("www")) {
+                        WebLink Link = new WebLink(attributes.get(ATTRIBUTE_HREF));
+                        Link.setName(itemChildren.text());
+                        Link.setType(WebLinkType.SourceURL);
+                        weblinks.add(Link);
+                    } else {
+                        WebLink Link = new WebLink(String.format(SITE_URL, attributes.get(ATTRIBUTE_HREF)));
+                        Link.setName(itemChildren.text());
+                        Link.setType(WebLinkType.SourceURL);
+                        weblinks.add(Link);
+                    }
+
+
+                }
+
+            }
+
+            previousTextOfItem = itemwebPage.text();
+
+
+        }
+
         WebLink viewLink = new WebLink(url);
         viewLink.setName("View website");
         viewLink.setType(WebLinkType.ViewURL);
@@ -187,6 +226,8 @@ public class FishStatJHarvester extends AbstractListHarvester<Element> // TODO c
         logoLink.setName("Logo");
         logoLink.setType(WebLinkType.ProviderLogoURL);
         weblinks.add(logoLink);
+
+
 
         return weblinks;
     }
@@ -199,7 +240,7 @@ public class FishStatJHarvester extends AbstractListHarvester<Element> // TODO c
         String language = getProperty(FishstatjParameterConstants.LANGUAGE_KEY);
         String version = getProperty(FishstatjParameterConstants.VERSION_KEY);
         Attributes attributes = entry.attributes();
-        String url = attributes.get("href");
+        String url = attributes.get(ATTRIBUTE_HREF);
 
         DataCiteJson document = new DataCiteJson();
         document.setVersion(version);
