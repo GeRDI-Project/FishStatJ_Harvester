@@ -23,6 +23,7 @@ import de.gerdiproject.harvest.IDocument;
 
 import de.gerdiproject.json.datacite.DataCiteJson;
 import de.gerdiproject.json.datacite.Description;
+import de.gerdiproject.json.datacite.Rights;
 import de.gerdiproject.json.datacite.Title;
 import de.gerdiproject.json.datacite.enums.DescriptionType;
 import de.gerdiproject.json.datacite.extension.WebLink;
@@ -113,6 +114,39 @@ public class FishStatJHarvester extends AbstractListHarvester<Element> // TODO c
 
     }
 
+    public List<Rights> rightsParser(String url)
+    {
+        List<Rights> Rights = new LinkedList<>();
+        Document doc = httpRequester.getHtmlFromUrl(url);
+        //choose from webpage element with class allWidth and all his children
+        Elements descriptionNames = doc.select("#allWidth").first().children();
+        //define previousTextOfItem as zero because for first entry it will be empty
+        String previousTextOfItem = "";
+        String hrefLink = "";
+
+        for (Element item : descriptionNames) {
+
+            if (previousTextOfItem.contains("Data Security Access Rules")) {
+                //add all text of rights
+                Rights right = new Rights(item.text());
+                Element children = item.children().first();
+                Attributes attributes = children.attributes();
+                hrefLink = attributes.get(ATTRIBUTE_HREF);
+
+                // if we have some url, we add this url to the Rights
+                if (!hrefLink.equals(""))
+                    right.setURI(String.format(SITE_URL, hrefLink));
+
+                Rights.add(right);
+            }
+
+            previousTextOfItem = item.text();
+        }
+
+
+        return Rights;
+    }
+
 
     public List<Description> descriptionParser(String url)
     {
@@ -163,7 +197,6 @@ public class FishStatJHarvester extends AbstractListHarvester<Element> // TODO c
             }
 
             previousTextOfItem = item.text();
-            //logger.info("prvText: "+previousTextOfItem);
 
         }
 
@@ -183,6 +216,7 @@ public class FishStatJHarvester extends AbstractListHarvester<Element> // TODO c
         //choose from webpage element with class allWidth and all his children
         Elements webPage = doc.select("#allWidth").first().children();
         String previousTextOfItem = "";
+        String hrefLink = "";
 
         //iterate all elements
         for (Element itemwebPage : webPage) {
@@ -192,35 +226,46 @@ public class FishStatJHarvester extends AbstractListHarvester<Element> // TODO c
 
                 for (Element itemChildren : children) {
                     Attributes attributes = itemChildren.attributes();
+                    hrefLink = attributes.get(ATTRIBUTE_HREF);
 
                     //need to check does this link work or not, some links not absolute, but relative, check it, if it is relative link, add SITE_URL
-                    if (attributes.get(ATTRIBUTE_HREF).contains("www")) {
-                        WebLink Link = new WebLink(attributes.get(ATTRIBUTE_HREF));
-                        Link.setName(itemChildren.text());
-                        Link.setType(WebLinkType.SourceURL);
-                        weblinks.add(Link);
-                    } else {
-                        WebLink Link = new WebLink(String.format(SITE_URL, attributes.get(ATTRIBUTE_HREF)));
-                        Link.setName(itemChildren.text());
+                    // first of at all cut /javascript:new_window('/fishery/statistics/global-production/query/en','biblio',1,1,1,1,1,1,1,700,650);
+                    // and have only /fishery/statistics/global-production/query/en
+                    if (hrefLink.contains("javascript:new_window")) {
+                        hrefLink = hrefLink.substring(hrefLink.indexOf('\'') + 1, hrefLink.indexOf(',') - 1);
+                        logger.info(hrefLink);
+                    }
+
+                    //check this link absolute or relative
+                    if (hrefLink.contains("www")) {
+                        WebLink Link = new WebLink(hrefLink);
+
+                        //links on publication haven't any text, only picture, for this case, set name as "Publication"
+                        if (itemChildren.text().equals(""))
+                            Link.setName("Publication");
+                        else
+                            Link.setName(itemChildren.text());
+
                         Link.setType(WebLinkType.SourceURL);
                         weblinks.add(Link);
                     }
 
-
+                    else {
+                        WebLink Link = new WebLink(String.format(SITE_URL, hrefLink));
+                        Link.setName(itemChildren.text());
+                        Link.setType(WebLinkType.SourceURL);
+                        weblinks.add(Link);
+                    }
                 }
-
             }
 
             previousTextOfItem = itemwebPage.text();
-
-
         }
 
         WebLink viewLink = new WebLink(url);
         viewLink.setName("View website");
         viewLink.setType(WebLinkType.ViewURL);
         weblinks.add(viewLink);
-
 
         WebLink logoLink = new WebLink(LOGO_URL);
         logoLink.setName("Logo");
@@ -252,12 +297,16 @@ public class FishStatJHarvester extends AbstractListHarvester<Element> // TODO c
         //parse description
         document.setDescriptions(descriptionParser(url));
 
+        //parse rights
+        document.setRightsList(rightsParser(url));
+
+        //parse weblinks
+        document.setWebLinks(weblinksParser(url));
+
         document.setPublisher(PROVIDER);
         document.setResearchDisciplines(DISCIPLINES);
         document.setRepositoryIdentifier(REPOSITORY_ID);
 
-        //parse weblinks
-        document.setWebLinks(weblinksParser(url));
 
         return Arrays.asList(document);
     }
