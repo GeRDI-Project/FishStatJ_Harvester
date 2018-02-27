@@ -19,12 +19,12 @@
 package de.gerdiproject.harvest.harvester;
 
 import de.gerdiproject.harvest.IDocument;
-
-
+import de.gerdiproject.json.datacite.Contributor;
 import de.gerdiproject.json.datacite.DataCiteJson;
 import de.gerdiproject.json.datacite.Description;
 import de.gerdiproject.json.datacite.Rights;
 import de.gerdiproject.json.datacite.Title;
+import de.gerdiproject.json.datacite.enums.ContributorType;
 import de.gerdiproject.json.datacite.enums.DescriptionType;
 import de.gerdiproject.json.datacite.extension.WebLink;
 import de.gerdiproject.json.datacite.extension.enums.WebLinkType;
@@ -57,6 +57,8 @@ public class FishStatJHarvester extends AbstractListHarvester<Element> // TODO c
     private final static String BASE_URL = "http://www.fao.org/fishery/statistics/collections/en";
     private final static String SITE_URL = "http://www.fao.org%s";
     private static final String PROVIDER = "Food and Agriculture Organization of the United Nations (FAO)";
+
+    //private static final List<Creator> CREATOR = (List<Creator>) new Creator(PROVIDER);
     public static final String REPOSITORY_ID = "FAOSTAT";
     public static final List<String> DISCIPLINES = Collections.unmodifiableList(Arrays.asList("Statistics"));
     public static final String LOGO_URL = "http://www.fao.org/figis/website/assets/images/templates/shared/fao_logo.gif";
@@ -97,21 +99,49 @@ public class FishStatJHarvester extends AbstractListHarvester<Element> // TODO c
     public List<Title> titleParser(String url)
     {
 
-        List<Title> list_of_title = new ArrayList<Title>();
+        List<Title> listOfTitle = new ArrayList<Title>();
         Document doc = httpRequester.getHtmlFromUrl(url);
 
-        Element title_first = doc.select("#head_title_class").first();
-        String title1 = title_first.text();
+        Element titleFirst = doc.select("#head_title_class").first();
+        String title1 = titleFirst.text();
         Title firstTitle = new Title(title1);
-        list_of_title.add(firstTitle);
-
+        listOfTitle.add(firstTitle);
+        //logger.info("Title "+title1);
         Element title_second = doc.select("#head_title_instance").first();
         String title2 = title_second.text();
+
+        //logger.info("Title "+title2);
         Title secondTitle = new Title(title2);
-        list_of_title.add(secondTitle);
+        listOfTitle.add(secondTitle);
 
-        return list_of_title;
+        return listOfTitle;
 
+    }
+    //need to parse name and surname, and type of contributors
+    public List<Contributor> contributorsParser(String url)
+    {
+        List<Contributor> listOfContributor = new LinkedList<>();
+        Document doc = httpRequester.getHtmlFromUrl(url);
+        //find element on page with "contact"
+        Element linkToTheContact = doc.select("a:contains(Contact)").first();
+
+        if (linkToTheContact != null) {
+            String urlToContact = String.format(SITE_URL, linkToTheContact.attr(ATTRIBUTE_HREF));
+
+            Document contactDoc = httpRequester.getHtmlFromUrl(urlToContact);
+            //problem - we can have two contact person
+            Elements contactElements = contactDoc.select(".padTop");
+
+            for (Element item : contactElements) {
+                Contributor contributor = new Contributor(item.select(".padBottom").text(), ContributorType.ContactPerson);
+                listOfContributor.add(contributor);
+            }
+
+        }
+
+
+
+        return listOfContributor;
     }
 
     public List<Rights> rightsParser(String url)
@@ -130,8 +160,7 @@ public class FishStatJHarvester extends AbstractListHarvester<Element> // TODO c
                 //add all text of rights
                 Rights right = new Rights(item.text());
                 Element children = item.children().first();
-                Attributes attributes = children.attributes();
-                hrefLink = attributes.get(ATTRIBUTE_HREF);
+                hrefLink = children.attr(ATTRIBUTE_HREF);
 
                 // if we have some url, we add this url to the Rights
                 if (!hrefLink.equals(""))
@@ -228,30 +257,34 @@ public class FishStatJHarvester extends AbstractListHarvester<Element> // TODO c
                     Attributes attributes = itemChildren.attributes();
                     hrefLink = attributes.get(ATTRIBUTE_HREF);
 
+                    WebLink Link = new WebLink(hrefLink);
+
                     //need to check does this link work or not, some links not absolute, but relative, check it, if it is relative link, add SITE_URL
                     // first of at all cut /javascript:new_window('/fishery/statistics/global-production/query/en','biblio',1,1,1,1,1,1,1,700,650);
                     // and have only /fishery/statistics/global-production/query/en
-                    if (hrefLink.contains("javascript:new_window")) {
+                    if (hrefLink.contains("javascript:new_window"))
                         hrefLink = hrefLink.substring(hrefLink.indexOf('\'') + 1, hrefLink.indexOf(',') - 1);
-                        logger.info(hrefLink);
-                    }
+
 
                     //check this link absolute or relative
                     if (hrefLink.contains("www")) {
-                        WebLink Link = new WebLink(hrefLink);
+                        //WebLink Link = new WebLink(hrefLink);
 
                         //links on publication haven't any text, only picture, for this case, set name as "Publication"
-                        if (itemChildren.text().equals(""))
+                        if (itemChildren.text().equals("")) {
                             Link.setName("Publication");
-                        else
+                            Link.setType(WebLinkType.Related);
+                        } else {
+                            Link.setType(WebLinkType.SourceURL);
                             Link.setName(itemChildren.text());
+                        }
 
-                        Link.setType(WebLinkType.SourceURL);
+                        Link.setUrl(hrefLink);
                         weblinks.add(Link);
                     }
 
                     else {
-                        WebLink Link = new WebLink(String.format(SITE_URL, hrefLink));
+                        Link.setUrl(String.format(SITE_URL, hrefLink));
                         Link.setName(itemChildren.text());
                         Link.setType(WebLinkType.SourceURL);
                         weblinks.add(Link);
@@ -261,6 +294,39 @@ public class FishStatJHarvester extends AbstractListHarvester<Element> // TODO c
 
             previousTextOfItem = itemwebPage.text();
         }
+
+        //links to "coverage", Str and etc
+        //WebLink sideBar = new WebLink(); Element linkToTheContact = doc.select().first();
+
+        Element sideBar = doc.select("a:contains(Coverage)").first();
+
+        //if this element exist
+        if (sideBar != null) {
+            WebLink coverageWebLink = new WebLink(String.format(SITE_URL, sideBar.attr(ATTRIBUTE_HREF)));
+            coverageWebLink.setName(sideBar.text());
+            coverageWebLink.setType(WebLinkType.Related);
+            weblinks.add(coverageWebLink);
+        }
+
+        sideBar = doc.select("a:contains(Structure)").first();
+
+        if (sideBar != null) {
+            WebLink StructureWebLink = new WebLink(String.format(SITE_URL, sideBar.attr(ATTRIBUTE_HREF)));
+            StructureWebLink.setName(sideBar.text());
+            StructureWebLink.setType(WebLinkType.Related);
+            weblinks.add(StructureWebLink);
+        }
+
+        sideBar = doc.select("a:contains(Data Source)").first();
+
+        if (sideBar != null) {
+            WebLink DataSourceWebLink = new WebLink(String.format(SITE_URL, sideBar.attr(ATTRIBUTE_HREF)));
+            DataSourceWebLink.setName(sideBar.text());
+            DataSourceWebLink.setType(WebLinkType.Related);
+            weblinks.add(DataSourceWebLink);
+        }
+
+
 
         WebLink viewLink = new WebLink(url);
         viewLink.setName("View website");
@@ -274,6 +340,7 @@ public class FishStatJHarvester extends AbstractListHarvester<Element> // TODO c
 
 
 
+
         return weblinks;
     }
 
@@ -284,8 +351,7 @@ public class FishStatJHarvester extends AbstractListHarvester<Element> // TODO c
     {
         String language = getProperty(FishstatjParameterConstants.LANGUAGE_KEY);
         String version = getProperty(FishstatjParameterConstants.VERSION_KEY);
-        Attributes attributes = entry.attributes();
-        String url = attributes.get(ATTRIBUTE_HREF);
+        String url = entry.attr(ATTRIBUTE_HREF);
 
         DataCiteJson document = new DataCiteJson();
         document.setVersion(version);
@@ -303,6 +369,10 @@ public class FishStatJHarvester extends AbstractListHarvester<Element> // TODO c
         //parse weblinks
         document.setWebLinks(weblinksParser(url));
 
+        //parse contributors
+        document.setContributors(contributorsParser(url));
+
+        //document.setCreators(CREATOR);
         document.setPublisher(PROVIDER);
         document.setResearchDisciplines(DISCIPLINES);
         document.setRepositoryIdentifier(REPOSITORY_ID);
@@ -310,9 +380,5 @@ public class FishStatJHarvester extends AbstractListHarvester<Element> // TODO c
 
         return Arrays.asList(document);
     }
-
-
-
-
 
 }
