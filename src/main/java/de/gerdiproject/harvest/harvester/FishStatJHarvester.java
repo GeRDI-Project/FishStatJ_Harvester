@@ -20,14 +20,17 @@ package de.gerdiproject.harvest.harvester;
 
 import de.gerdiproject.harvest.IDocument;
 import de.gerdiproject.json.datacite.Contributor;
+import de.gerdiproject.json.datacite.Creator;
 import de.gerdiproject.json.datacite.DataCiteJson;
 import de.gerdiproject.json.datacite.Description;
 import de.gerdiproject.json.datacite.Rights;
 import de.gerdiproject.json.datacite.Title;
 import de.gerdiproject.json.datacite.enums.ContributorType;
 import de.gerdiproject.json.datacite.enums.DescriptionType;
+import de.gerdiproject.json.datacite.enums.NameType;
 import de.gerdiproject.json.datacite.extension.WebLink;
 import de.gerdiproject.json.datacite.extension.enums.WebLinkType;
+import de.gerdiproject.json.datacite.nested.PersonName;
 //import de.gerdiproject.harvest.fishstatj.constants.FishstatjDataCiteConstants;
 import de.gerdiproject.harvest.fishstatj.constants.FishstatjParameterConstants;
 
@@ -37,7 +40,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
-
 import org.jsoup.nodes.Attributes;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -58,7 +60,7 @@ public class FishStatJHarvester extends AbstractListHarvester<Element> // TODO c
     private final static String SITE_URL = "http://www.fao.org%s";
     private static final String PROVIDER = "Food and Agriculture Organization of the United Nations (FAO)";
 
-    //private static final List<Creator> CREATOR = (List<Creator>) new Creator(PROVIDER);
+
     public static final String REPOSITORY_ID = "FAOSTAT";
     public static final List<String> DISCIPLINES = Collections.unmodifiableList(Arrays.asList("Statistics"));
     public static final String LOGO_URL = "http://www.fao.org/figis/website/assets/images/templates/shared/fao_logo.gif";
@@ -130,10 +132,21 @@ public class FishStatJHarvester extends AbstractListHarvester<Element> // TODO c
 
             Document contactDoc = httpRequester.getHtmlFromUrl(urlToContact);
             //problem - we can have two contact person
-            Elements contactElements = contactDoc.select(".padTop");
+            Elements contactElements = contactDoc.select(".padBottom");
 
             for (Element item : contactElements) {
-                Contributor contributor = new Contributor(item.select(".padBottom").text(), ContributorType.ContactPerson);
+
+                //we need to parse name and surname and recognise where is organisation where is person
+                // for recognition we just check manually through all list of family name
+                //  ,, , ,
+                PersonName person = new PersonName(item.text(), NameType.Organisational);
+                Contributor contributor = new Contributor(person, ContributorType.ContactPerson);
+
+                if (item.text().contains("Valerio Crespi") || item.text().contains("Dr Jacek Majkowski") || item.text().contains("Ms Rossi Taddei") || item.text().contains("Mr Fabio Carocci") || item.text().contains("José Aguilar-Manjarrez") || item.text().contains("Francesco Cardia") || item.text().contains("Karn Sukwong") || item.text().contains("Devin Bartley") || item.text().contains("Blaise Kuemlangan") || item.text().contains("Ms. Marianne Guyonnet")) {
+                    person.setNameType(NameType.Personal);
+                    contributor.setName(person);
+                }
+
                 listOfContributor.add(contributor);
             }
 
@@ -144,6 +157,12 @@ public class FishStatJHarvester extends AbstractListHarvester<Element> // TODO c
         return listOfContributor;
     }
 
+    /*   public List<A> nameParser (String name)
+       {
+           List<String> name = new LinkedList
+           return
+       }
+    */
     public List<Rights> rightsParser(String url)
     {
         List<Rights> Rights = new LinkedList<>();
@@ -370,9 +389,15 @@ public class FishStatJHarvester extends AbstractListHarvester<Element> // TODO c
         document.setWebLinks(weblinksParser(url));
 
         //parse contributors
+
         document.setContributors(contributorsParser(url));
 
-        //document.setCreators(CREATOR);
+        //add creators, same as PROVIDER
+        Creator creator = new Creator(PROVIDER);
+        List<Creator> Creators = new LinkedList<>();
+        Creators.add(creator);
+        document.setCreators(Creators);
+
         document.setPublisher(PROVIDER);
         document.setResearchDisciplines(DISCIPLINES);
         document.setRepositoryIdentifier(REPOSITORY_ID);
