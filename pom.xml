@@ -13,6 +13,7 @@
     <packaging>war</packaging>
 	<name>FishStatJ Harvester Service</name>
 	<description>This is a restful harvester for retrieving data from http://www.fao.org/fishery/statistics/collections/en</description>
+	<inceptionYear>2017</inceptionYear>
   
 	<developers>
 		<developer>
