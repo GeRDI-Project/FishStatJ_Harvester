@@ -21,6 +21,9 @@ public class FishstatjParameterConstants
     public static final String LOGO_URL = "http://www.fao.org/figis/website/assets/images/templates/shared/fao_logo.gif";
     public static final String DESCRIPTION_FORMAT = "%s : %s";
     public static final String ATTRIBUTE_HREF = "href";
+    public static final String NAME_TXT_FILE = "Notes.txt";
+    public static final List<String> KEY_WORD_FOR_CR = Collections.unmodifiableList(Arrays.asList("COPYRIGHT & DISCLAIMER CLAUSES", "For comments, views and suggestions relating to this data, please email to:"));
+    public static final String KEY_WORD_FOR_DATE = "";
     public static final String PATH_DESTINATION = "/var/lib/jetty/downloaded.zip";
     public static final String PATH_DESTINATION_FOLDER = "/var/lib/jetty/downloaded/";
 

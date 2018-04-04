@@ -80,7 +80,6 @@ public class FishStatJHarvester extends AbstractListHarvester<Element> // TODO c
 
         Collection<Element> entries_primary = doc.select("a[title=\"data collection\"], a[title=\"search interface\"], a[title=\"webpage\"], a[title=\"website; map\"]");
         Collection<Element> entries = new  ArrayList<Element>();
-        logger.info("Entring");
 
         //Check if url link in html document doesn't return empty http request, add this document for entries
         for (Element item : entries_primary) {
@@ -132,7 +131,7 @@ public class FishStatJHarvester extends AbstractListHarvester<Element> // TODO c
         document.setResearchDisciplines(FishstatjParameterConstants.DISCIPLINES);
         document.setRepositoryIdentifier(FishstatjParameterConstants.REPOSITORY_ID);
 
-        if (!zipParser.findLinkForDownload(url).equals("")) {
+        if (!ZipParser.findLinkForDownload(url).equals("")) {
             document.setSubjects(zipParser.getSubjectFromUrl(url));
             //logger.info("size"+subjectParser.getSubjectFromUrl(url).size());
         }

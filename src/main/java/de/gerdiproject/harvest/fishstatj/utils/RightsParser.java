@@ -6,20 +6,25 @@ import java.util.List;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
-
 import de.gerdiproject.harvest.fishstatj.constants.FishstatjParameterConstants;
 import de.gerdiproject.harvest.utils.data.HttpRequester;
 import de.gerdiproject.json.datacite.Rights;
+
+
+
 
 public class RightsParser
 {
 
     private HttpRequester httpRequester;
 
+
     public RightsParser()
     {
         httpRequester = new HttpRequester();
+
     }
+
 
 
 
@@ -50,6 +55,15 @@ public class RightsParser
 
             previousTextOfItem = item.text();
         }
+
+        // add rights from zip
+        if (!ZipParser.findLinkForDownload(url).equals("") && ZipParser.downloadZipFromUrl(ZipParser.findLinkForDownload(url), FishstatjParameterConstants.getPathDestination())) {
+            ZipParser.unZip(FishstatjParameterConstants.getPathDestinatioFolder(), FishstatjParameterConstants.getPathDestination());
+            Rights.add(ZipParser.addRights(ZipParser.listOfFilesTxt(FishstatjParameterConstants.getPathDestinatioFolder()), FishstatjParameterConstants.KEY_WORD_FOR_CR));
+
+
+        }
+
 
 
         return Rights;

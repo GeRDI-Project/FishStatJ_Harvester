@@ -34,20 +34,18 @@ import net.lingala.zip4j.exception.ZipException;
 
 public class ZipParser
 {
-    private HttpRequester httpRequester;
+    private static HttpRequester httpRequester = new HttpRequester();
     private static final Logger log = LoggerFactory.getLogger("Name");
     final static Charset ENCODING = StandardCharsets.UTF_8;
     private static final String ERROR_MESSAGE = "Error";
 
     public ZipParser()
     {
-        //logger = LoggerFactory.getLogger(ERROR_MESSAGE);
-        httpRequester = new HttpRequester();
 
     }
 
     //parse subjects
-    public String findLinkForDownload(String url)
+    public static String findLinkForDownload(String url)
     {
         //need to find zip
         Document doc = httpRequester.getHtmlFromUrl(url);
@@ -151,20 +149,59 @@ public class ZipParser
         return listOfPath;
     }
 
-    //read txt files
-    List<String> readTextFile(String aFileName) throws IOException
+    //read txt files, in resuly we have list of string
+    static List<String> readTextFile(String destination) throws IOException
     {
-        Path path = Paths.get(aFileName);
-        return Files.readAllLines(path, ENCODING);
+        Path path = Paths.get(destination);
+        //Charset encod = "ISO-8859-1";
+
+        //UTF encoding doesn't work here, why?
+        return Files.readAllLines(path, Charset.forName("ISO-8859-1"));
+    }
+    // two variants to organise this parser, first leave final parser here, second - add to RightsParser
+    public static  Rights addRights(List<String> listOfFiles, List<String> listOfKeyWords)
+    {
+
+        //indicator show us are we inside in block of lines with rights or not
+        Boolean indicator = false;
+        String rightsAsString = "";
+
+        for (String iterator : listOfFiles) {
+
+            try {
+                List<String> Text = readTextFile(iterator);
+
+                for (String line : Text) {
+                    // if we find key word for closing - indicator = false
+                    if (line.contains(listOfKeyWords.get(1)))
+                        indicator = false;
+
+                    //if we inside add current line to rights
+                    if (indicator)
+                        rightsAsString = rightsAsString.concat(line);
+
+                    // if we find key word for entering - indicator = true
+
+                    if (line.contains(listOfKeyWords.get(0)))
+
+                        indicator = true;
+
+
+                }
+
+            } catch (IOException e) {
+                // TODO Auto-generated catch block
+                log.error(ERROR_MESSAGE, e);
+            }
+
+        }
+
+        Rights right = new Rights(rightsAsString);
+
+
+        return right;
     }
 
-
-    public List<Rights> rightsParser(String url)
-    {
-        List<Rights> Rights = new LinkedList<>();
-
-        return Rights;
-    }
 
     public static Set<Subject> addSubject(List<String> listOfFiles, List<String> listOfSubject)
     {
@@ -235,13 +272,10 @@ public class ZipParser
     {
         List<Subject> subjects = new ArrayList<Subject>();
 
-        //String LinkToZip = findLinkForDownload(url);
         if (downloadZipFromUrl(findLinkForDownload(url), FishstatjParameterConstants.getPathDestination())) {
             unZip(FishstatjParameterConstants.getPathDestinatioFolder(), FishstatjParameterConstants.getPathDestination());
-            //logger.info("parsing subjects");
             subjects.addAll(addSubject(listOfFilesCsv(FishstatjParameterConstants.getPathDestinatioFolder()), FishstatjParameterConstants.LIST_OF_SUBJECTS));
-            // List<Subject> list = new ArrayList<Subject>(addSubject(listOfFiles(FishstatjParameterConstants.PATH_DESTINATION_FOLDER), FishstatjParameterConstants.LIST_OF_SUBJECTS));
-            //return list;
+
         }
 
         return  subjects;
