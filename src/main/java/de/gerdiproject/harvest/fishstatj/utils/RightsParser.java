@@ -57,9 +57,9 @@ public class RightsParser
         }
 
         // add rights from zip
-        if (!ZipParser.findLinkForDownload(url).equals("") && ZipParser.downloadZipFromUrl(ZipParser.findLinkForDownload(url), FishstatjParameterConstants.getPathDestination())) {
-            ZipParser.unZip(FishstatjParameterConstants.getPathDestinatioFolder(), FishstatjParameterConstants.getPathDestination());
-            Rights.add(ZipParser.addRights(ZipParser.listOfFilesTxt(FishstatjParameterConstants.getPathDestinatioFolder()), FishstatjParameterConstants.KEY_WORD_FOR_CR));
+        if (!ZipParser.findLinkForDownload(url).equals("") && ZipParser.downloadZipFromUrl(ZipParser.findLinkForDownload(url), FishstatjParameterConstants.PATH_DESTINATION)) {
+            ZipParser.unZip(FishstatjParameterConstants.PATH_DESTINATION_FOLDER, FishstatjParameterConstants.PATH_DESTINATION);
+            Rights.add(ZipParser.addRights(ZipParser.listOfFilesTxt(FishstatjParameterConstants.PATH_DESTINATION_FOLDER), FishstatjParameterConstants.KEY_WORD_FOR_CR));
 
 
         }

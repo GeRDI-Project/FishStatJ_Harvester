@@ -23,6 +23,7 @@ import de.gerdiproject.json.datacite.Creator;
 import de.gerdiproject.json.datacite.DataCiteJson;
 import de.gerdiproject.harvest.fishstatj.constants.FishstatjParameterConstants;
 import de.gerdiproject.harvest.fishstatj.utils.ContributorsParser;
+import de.gerdiproject.harvest.fishstatj.utils.DatesParser;
 import de.gerdiproject.harvest.fishstatj.utils.DescriptionsParser;
 import de.gerdiproject.harvest.fishstatj.utils.RightsParser;
 import de.gerdiproject.harvest.fishstatj.utils.TitlesParser;
@@ -53,6 +54,7 @@ public class FishStatJHarvester extends AbstractListHarvester<Element> // TODO c
     private DescriptionsParser descriptionsParser;
     private WeblinksParser weblinksParser;
     private RightsParser rightsParser;
+    private DatesParser datesParser;
 
     /**
      * Default Constructor that is called by the MainContext.
@@ -66,6 +68,7 @@ public class FishStatJHarvester extends AbstractListHarvester<Element> // TODO c
         descriptionsParser = new DescriptionsParser();
         weblinksParser = new WeblinksParser();
         rightsParser = new RightsParser();
+        datesParser = new DatesParser();
 
         //
         // TODO initialize final fields
@@ -130,6 +133,9 @@ public class FishStatJHarvester extends AbstractListHarvester<Element> // TODO c
         document.setPublisher(FishstatjParameterConstants.PROVIDER);
         document.setResearchDisciplines(FishstatjParameterConstants.DISCIPLINES);
         document.setRepositoryIdentifier(FishstatjParameterConstants.REPOSITORY_ID);
+
+        document.setDates(datesParser.datesParser(url));
+
 
         if (!ZipParser.findLinkForDownload(url).equals("")) {
             document.setSubjects(zipParser.getSubjectFromUrl(url));

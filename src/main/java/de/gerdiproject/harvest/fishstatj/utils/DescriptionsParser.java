@@ -33,7 +33,20 @@ public class DescriptionsParser
         for (Element item : descriptionNames) {
             //compare previousTextOfItem with all text that define description, if true, add to the description text after previousTextOfItem
             // maybe better to put all this names of descriptions in one list as a parameter and use loop for checking
-            if (previousTextOfItem.equals("Collection Overview   ")) {
+
+
+
+            for (String validDescription : FishstatjParameterConstants.VALID_DESCRIPTION) {
+                if (previousTextOfItem.contains(validDescription)) {
+                    Description description = new Description(String.format(FishstatjParameterConstants.DESCRIPTION_FORMAT, previousTextOfItem, item.text()), DescriptionType.Abstract);
+                    descriptions.add(description);
+                    break;
+                }
+            }
+
+            /*if (previousTextOfItem.equals("Collection Overview")
+                    || previousTextOfItem.contains("Status")
+                    ) {
                 Description description = new Description(String.format(FishstatjParameterConstants.DESCRIPTION_FORMAT, previousTextOfItem, item.text()), DescriptionType.Abstract);
                 descriptions.add(description);
             }
@@ -67,7 +80,7 @@ public class DescriptionsParser
                 Description description = new Description(String.format(FishstatjParameterConstants.DESCRIPTION_FORMAT, previousTextOfItem, item.text()), DescriptionType.Abstract);
                 descriptions.add(description);
 
-            }
+            }*/
 
             previousTextOfItem = item.text();
 

@@ -23,16 +23,18 @@ public class FishstatjParameterConstants
     public static final String ATTRIBUTE_HREF = "href";
     public static final String NAME_TXT_FILE = "Notes.txt";
     public static final List<String> KEY_WORD_FOR_CR = Collections.unmodifiableList(Arrays.asList("COPYRIGHT & DISCLAIMER CLAUSES", "For comments, views and suggestions relating to this data, please email to:"));
+    public static final List<String> KEY_WORD_FOR_DATES = Collections.unmodifiableList(Arrays.asList("Version", "FAO 2017"));
     public static final String KEY_WORD_FOR_DATE = "";
-    public static final String PATH_DESTINATION = "/var/lib/jetty/downloaded.zip";
-    public static final String PATH_DESTINATION_FOLDER = "/var/lib/jetty/downloaded/";
+    public static final String PATH_DESTINATION = "var/lib/jetty/downloaded.zip";
+    public static final String PATH_DESTINATION_FOLDER = "var/lib/jetty/downloaded/";
+    public static final List<String> VALID_DESCRIPTION = Collections.unmodifiableList(Arrays.asList("Collection Overview", "Status", "Typical Usage", "Audience", "Data Security Access Rules", "Dataset Overview"));
 
     //first header "Name_en" "Ocean_Group" "Major_Group" "FARegion_Group"
     //  "Family_Group", "Order_Group", "Major_Group", "ISSCAAP_Group", "CPCdiv_Group", "CPC_Group"
     //"Ocean_Group", "Major_Group", "FARegion_Group", "Name_E", "Scientific_Name", "Author", "Yearbook_Group"
     public static final List<String> LIST_OF_SUBJECTS = Collections.unmodifiableList(Arrays.asList("Name_en", "Scientific_Name"));
     //I had "Hard coded reference to an absolute pathname in" and to avoid it google suggested me to call PATH not directly !!!!!!!!
-    public static String getPathDestination()
+    /*public static String getPathDestination()
     {
 
         return PATH_DESTINATION;
@@ -44,6 +46,6 @@ public class FishstatjParameterConstants
 
         return PATH_DESTINATION_FOLDER;
 
-    }
+    }*/
 
 }

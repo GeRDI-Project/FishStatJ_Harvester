@@ -35,7 +35,7 @@ import net.lingala.zip4j.exception.ZipException;
 public class ZipParser
 {
     private static HttpRequester httpRequester = new HttpRequester();
-    private static final Logger log = LoggerFactory.getLogger("Name");
+    private static final Logger log = LoggerFactory.getLogger(ZipParser.class);
     final static Charset ENCODING = StandardCharsets.UTF_8;
     private static final String ERROR_MESSAGE = "Error";
 
@@ -71,7 +71,6 @@ public class ZipParser
 
         } catch (MalformedURLException e) {
             // TODO Auto-generated catch block
-            //logger.error("Error", e)
             log.error(ERROR_MESSAGE, e);
             //e.printStackTrace();
         }
@@ -156,8 +155,65 @@ public class ZipParser
         //Charset encod = "ISO-8859-1";
 
         //UTF encoding doesn't work here, why?
-        return Files.readAllLines(path, Charset.forName("ISO-8859-1"));
+        return Files.readAllLines(path, StandardCharsets.ISO_8859_1);
     }
+    public static List<String> addDateAsString(List<String> listOfFiles, List<String> listOfKeyWords)
+    {
+
+        //indicator show us are we inside in block of lines with rights or not
+        Boolean indicator = false;
+        List<String> addDateAsString = new ArrayList<>();
+        String Date = "";
+
+        for (String iterator : listOfFiles) {
+
+            try {
+                List<String> Text = readTextFile(iterator);
+
+                for (String line : Text) {
+                    // if we find key word for closing - indicator = false
+
+                    if (line.contains(listOfKeyWords.get(1)))
+                        indicator = false;
+
+                    //if we inside add current line to rights
+                    if (indicator)
+
+                        //
+                        for (int i = 0; i < line.length(); i++) {
+                            log.info("Line " + line);
+
+                            if (line.toCharArray()[i] == '-') {
+
+                                Date = line.substring(i - 2, i + 8);
+                                addDateAsString.add(Date);
+                                break;
+                            }
+                        }
+
+
+
+                    // if we find key word for entering - indicator = true
+
+                    if (line.contains(listOfKeyWords.get(0)))
+
+                        indicator = true;
+
+
+                }
+
+            } catch (IOException e) {
+                // TODO Auto-generated catch block
+                log.error(ERROR_MESSAGE, e);
+            }
+
+        }
+
+
+
+        return addDateAsString;
+    }
+
     // two variants to organise this parser, first leave final parser here, second - add to RightsParser
     public static  Rights addRights(List<String> listOfFiles, List<String> listOfKeyWords)
     {
@@ -215,6 +271,7 @@ public class ZipParser
                 // nextLine[] is an array of values from the line
                 String [] nextLine;
                 //create reader
+                //why i need statement below
                 @SuppressWarnings("resource")
                 CSVReader reader = new CSVReader(new InputStreamReader(new FileInputStream(iterator), ENCODING));
                 //go through whole document
@@ -272,9 +329,9 @@ public class ZipParser
     {
         List<Subject> subjects = new ArrayList<Subject>();
 
-        if (downloadZipFromUrl(findLinkForDownload(url), FishstatjParameterConstants.getPathDestination())) {
-            unZip(FishstatjParameterConstants.getPathDestinatioFolder(), FishstatjParameterConstants.getPathDestination());
-            subjects.addAll(addSubject(listOfFilesCsv(FishstatjParameterConstants.getPathDestinatioFolder()), FishstatjParameterConstants.LIST_OF_SUBJECTS));
+        if (downloadZipFromUrl(findLinkForDownload(url), FishstatjParameterConstants.PATH_DESTINATION)) {
+            unZip(FishstatjParameterConstants.PATH_DESTINATION_FOLDER, FishstatjParameterConstants.PATH_DESTINATION);
+            subjects.addAll(addSubject(listOfFilesCsv(FishstatjParameterConstants.PATH_DESTINATION_FOLDER), FishstatjParameterConstants.LIST_OF_SUBJECTS));
 
         }
 
