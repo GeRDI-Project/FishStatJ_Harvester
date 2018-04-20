@@ -42,7 +42,7 @@ public class ContributorsParser
 
                 //we need to parse name and surname and recognise where is organisation where is person
                 // for recognition we just check manually through all list of family name
-                // in our case we can just can use hard coding 
+                // in our case we can just can use hard coding
                 PersonName person = new PersonName(item.text(), NameType.Organisational);
                 Contributor contributor = new Contributor(person, ContributorType.ContactPerson);
 

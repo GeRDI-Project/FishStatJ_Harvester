@@ -23,19 +23,19 @@ import de.gerdiproject.json.datacite.Rights;
 public class RightsParser
 {
 
-    private static HttpRequester httpRequester;
+    private static HttpRequester httpRequester = new HttpRequester();
     private static final Logger log = LoggerFactory.getLogger(SubjectParser.class);
     private static final String ERROR_MESSAGE = "Error";
 
 
     public RightsParser()
     {
-        httpRequester = new HttpRequester();
+
 
     }
 
-    
-    public static  Rights addRightsFromTxt (List<String> listOfFiles, List<String> listOfKeyWords)
+
+    public static  Rights addRightsFromTxt(List<String> listOfFiles, List<String> listOfKeyWords)
     {
 
         //indicator show us are we inside in block of lines with rights or not
@@ -77,10 +77,10 @@ public class RightsParser
 
         return right;
     }
-    
-    public static  List<Rights> addRightsFromWeb (String url)
+
+    public static  List<Rights> addRightsFromWeb(String url)
     {
-    	List<Rights> Rights = new LinkedList<>();
+        List<Rights> Rights = new LinkedList<>();
         Document doc = httpRequester.getHtmlFromUrl(url);
         //choose from webpage element with class allWidth and all his children
         Elements descriptionNames = doc.select("#allWidth").first().children();
@@ -105,8 +105,9 @@ public class RightsParser
 
             previousTextOfItem = item.text();
         }
+
         return Rights;
-    	
+
     }
 
 
@@ -114,6 +115,7 @@ public class RightsParser
     {
         List<Rights> Rights = new LinkedList<>();
         Rights.addAll(addRightsFromWeb(url));
+
         // add rights from zip
         if (!UtilZip.findLinkForDownload(url).equals("") && UtilZip.downloadZipFromUrl(UtilZip.findLinkForDownload(url), FishstatjParameterConstants.PATH_DESTINATION)) {
             UtilZip.unZip(FishstatjParameterConstants.PATH_DESTINATION_FOLDER, FishstatjParameterConstants.PATH_DESTINATION);

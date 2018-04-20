@@ -29,7 +29,7 @@ public class TitlesParser
         String title1 = titleFirst.text();
         Title firstTitle = new Title(title1);
         listOfTitle.add(firstTitle);
-        
+
         Element title_second = doc.select("#head_title_instance").first();
         String title2 = title_second.text();
 

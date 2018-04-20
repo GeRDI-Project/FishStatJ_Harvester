@@ -26,7 +26,7 @@ public class DatesParser
     {
 
     }
-    //parse dates, for previous version, txt  had dates of changing versions    
+    //parse dates, for previous version, txt  had dates of changing versions
     public static List<String> addDateAsString(List<String> listOfFiles, List<String> listOfKeyWords)
     {
 
@@ -51,7 +51,7 @@ public class DatesParser
 
                         //
                         for (int i = 0; i < line.length(); i++) {
-                            
+
 
                             if (line.toCharArray()[i] == '-') {
 
@@ -83,7 +83,7 @@ public class DatesParser
 
         return addDateAsString;
     }
-    //parser of dates 
+    //parser of dates
     public List<AbstractDate> datesParser(String url)
     {
 

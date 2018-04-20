@@ -137,7 +137,8 @@ public class FishStatJHarvester extends AbstractListHarvester<Element> // TODO c
 
         document.setDates(datesParser.datesParser(url));
         document.setSubjects(subjectParser.getSubjectFromUrl(url));
-        //if we found link for download, we add subjects 
+
+        //if we found link for download, we add subjects
         if (!UtilZip.findLinkForDownload(url).equals(""))
             document.setSubjects(subjectParser.getSubjectFromUrl(url));
 
