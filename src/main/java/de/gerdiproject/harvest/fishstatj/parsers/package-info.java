@@ -22,4 +22,4 @@
  *
  * @author Bohdan Tkachuk
  */
-package de.gerdiproject.harvest.fishstatj.utils;
+package de.gerdiproject.harvest.fishstatj.parsers;

@@ -22,13 +22,14 @@ import de.gerdiproject.harvest.IDocument;
 import de.gerdiproject.json.datacite.Creator;
 import de.gerdiproject.json.datacite.DataCiteJson;
 import de.gerdiproject.harvest.fishstatj.constants.FishstatjParameterConstants;
-import de.gerdiproject.harvest.fishstatj.utils.ContributorsParser;
-import de.gerdiproject.harvest.fishstatj.utils.DatesParser;
-import de.gerdiproject.harvest.fishstatj.utils.DescriptionsParser;
-import de.gerdiproject.harvest.fishstatj.utils.RightsParser;
-import de.gerdiproject.harvest.fishstatj.utils.TitlesParser;
-import de.gerdiproject.harvest.fishstatj.utils.WeblinksParser;
-import de.gerdiproject.harvest.fishstatj.utils.ZipParser;
+import de.gerdiproject.harvest.fishstatj.parsers.ContributorsParser;
+import de.gerdiproject.harvest.fishstatj.parsers.DatesParser;
+import de.gerdiproject.harvest.fishstatj.parsers.DescriptionsParser;
+import de.gerdiproject.harvest.fishstatj.parsers.RightsParser;
+import de.gerdiproject.harvest.fishstatj.parsers.SubjectParser;
+import de.gerdiproject.harvest.fishstatj.parsers.TitlesParser;
+import de.gerdiproject.harvest.fishstatj.parsers.WeblinksParser;
+import de.gerdiproject.harvest.fishstatj.utils.UtilZip;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -48,7 +49,7 @@ import org.jsoup.nodes.Element;
 public class FishStatJHarvester extends AbstractListHarvester<Element> // TODO choose an AbstractHarvester implementation that suits your needs
 {
 
-    private ZipParser zipParser;
+    private SubjectParser subjectParser;
     private ContributorsParser contributorsParser;
     private TitlesParser titlesParser;
     private DescriptionsParser descriptionsParser;
@@ -62,7 +63,7 @@ public class FishStatJHarvester extends AbstractListHarvester<Element> // TODO c
     public FishStatJHarvester()
     {
         super(1);
-        zipParser = new ZipParser();
+        subjectParser = new SubjectParser();
         contributorsParser = new ContributorsParser();
         titlesParser = new TitlesParser();
         descriptionsParser = new DescriptionsParser();
@@ -135,12 +136,10 @@ public class FishStatJHarvester extends AbstractListHarvester<Element> // TODO c
         document.setRepositoryIdentifier(FishstatjParameterConstants.REPOSITORY_ID);
 
         document.setDates(datesParser.datesParser(url));
-
-
-        if (!ZipParser.findLinkForDownload(url).equals("")) {
-            document.setSubjects(zipParser.getSubjectFromUrl(url));
-            //logger.info("size"+subjectParser.getSubjectFromUrl(url).size());
-        }
+        document.setSubjects(subjectParser.getSubjectFromUrl(url));
+        //if we found link for download, we add subjects 
+        if (!UtilZip.findLinkForDownload(url).equals(""))
+            document.setSubjects(subjectParser.getSubjectFromUrl(url));
 
         return Arrays.asList(document);
     }

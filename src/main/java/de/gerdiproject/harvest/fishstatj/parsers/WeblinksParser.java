@@ -1,4 +1,4 @@
-package de.gerdiproject.harvest.fishstatj.utils;
+package de.gerdiproject.harvest.fishstatj.parsers;
 
 import java.util.LinkedList;
 import java.util.List;

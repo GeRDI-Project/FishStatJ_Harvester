@@ -1,4 +1,4 @@
-package de.gerdiproject.harvest.fishstatj.utils;
+package de.gerdiproject.harvest.fishstatj.parsers;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -29,11 +29,10 @@ public class TitlesParser
         String title1 = titleFirst.text();
         Title firstTitle = new Title(title1);
         listOfTitle.add(firstTitle);
-        //logger.info("Title "+title1);
+        
         Element title_second = doc.select("#head_title_instance").first();
         String title2 = title_second.text();
 
-        //logger.info("Title "+title2);
         Title secondTitle = new Title(title2);
         listOfTitle.add(secondTitle);
 

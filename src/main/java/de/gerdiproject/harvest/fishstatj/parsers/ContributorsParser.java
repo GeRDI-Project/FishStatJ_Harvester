@@ -1,4 +1,4 @@
-package de.gerdiproject.harvest.fishstatj.utils;
+package de.gerdiproject.harvest.fishstatj.parsers;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -36,14 +36,13 @@ public class ContributorsParser
             String urlToContact = String.format(FishstatjParameterConstants.SITE_URL, linkToTheContact.attr(FishstatjParameterConstants.ATTRIBUTE_HREF));
 
             Document contactDoc = httpRequester.getHtmlFromUrl(urlToContact);
-            //problem - we can have two contact person
             Elements contactElements = contactDoc.select(".padBottom");
 
             for (Element item : contactElements) {
 
                 //we need to parse name and surname and recognise where is organisation where is person
                 // for recognition we just check manually through all list of family name
-                //  ,, , ,
+                // in our case we can just can use hard coding 
                 PersonName person = new PersonName(item.text(), NameType.Organisational);
                 Contributor contributor = new Contributor(person, ContributorType.ContactPerson);
 
