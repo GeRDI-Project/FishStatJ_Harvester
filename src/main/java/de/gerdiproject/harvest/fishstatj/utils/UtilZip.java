@@ -6,11 +6,14 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+
 import org.apache.commons.io.FileUtils;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.gson.Gson;
 
 import de.gerdiproject.harvest.fishstatj.constants.FishstatjParameterConstants;
 import de.gerdiproject.harvest.utils.data.HttpRequester;
@@ -19,7 +22,7 @@ import net.lingala.zip4j.exception.ZipException;
 
 public class UtilZip
 {
-    private static HttpRequester httpRequester = new HttpRequester();
+    private static HttpRequester httpRequester = new HttpRequester(new Gson(), StandardCharsets.UTF_8);
     private static final Logger log = LoggerFactory.getLogger(UtilZip.class);
     final static Charset ENCODING = StandardCharsets.UTF_8;
     private static final String ERROR_MESSAGE = "Error";

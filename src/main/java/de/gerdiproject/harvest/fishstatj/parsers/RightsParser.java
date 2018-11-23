@@ -1,6 +1,7 @@
 package de.gerdiproject.harvest.fishstatj.parsers;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -9,6 +10,8 @@ import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.gson.Gson;
 
 import de.gerdiproject.harvest.fishstatj.constants.FishstatjParameterConstants;
 import de.gerdiproject.harvest.fishstatj.utils.UtilFolder;
@@ -23,7 +26,7 @@ import de.gerdiproject.json.datacite.Rights;
 public class RightsParser
 {
 
-    private static HttpRequester httpRequester = new HttpRequester();
+    private static HttpRequester httpRequester = new HttpRequester(new Gson(), StandardCharsets.UTF_8);
     private static final Logger log = LoggerFactory.getLogger(SubjectParser.class);
     private static final String ERROR_MESSAGE = "Error";
 

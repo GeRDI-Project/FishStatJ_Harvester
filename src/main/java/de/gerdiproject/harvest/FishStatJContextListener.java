@@ -18,32 +18,26 @@
  */
 package de.gerdiproject.harvest;
 
-import de.gerdiproject.harvest.config.parameters.AbstractParameter;
-import de.gerdiproject.harvest.config.parameters.StringParameter;
-import de.gerdiproject.harvest.fishstatj.constants.FishstatjParameterConstants;
-import de.gerdiproject.harvest.harvester.FishStatJHarvester;
-
 import java.util.Arrays;
 import java.util.List;
 
 import javax.servlet.annotation.WebListener;
 
+import de.gerdiproject.harvest.application.ContextListener;
+import de.gerdiproject.harvest.etls.AbstractETL;
+import de.gerdiproject.harvest.etls.FishStatJETL;
+
 /**
- * This class initializes the {@linkplain FishStatJHarvester} and all required classes.
+ * This class initializes the {@linkplain FishStatJETL} and all required classes.
  *
  * @author Robin Weiss
  */
 @WebListener
-public class FishStatJContextListener extends ContextListener<FishStatJHarvester>
+public class FishStatJContextListener extends ContextListener
 {
-
     @Override
-    protected List<AbstractParameter<?>> getHarvesterSpecificParameters()
+    protected List<? extends AbstractETL<?, ?>> createETLs()
     {
-        StringParameter versionParam = new StringParameter(FishstatjParameterConstants.VERSION_KEY, FishstatjParameterConstants.VERSION_DEFAULT);
-        StringParameter languageParam = new StringParameter(FishstatjParameterConstants.LANGUAGE_KEY, FishstatjParameterConstants.LANGUAGE_DEFAULT);
-
-        return Arrays.asList(versionParam, languageParam);
+        return Arrays.asList(new FishStatJETL());
     }
-
 }

@@ -18,8 +18,8 @@
  */
 
 /**
- * This package contains classes and packages that are related to the {@linkplain de.gerdiproject.harvest.harvester.FishStatJHarvester} and its sub-classes.
+ * This package contains classes and packages that are related to the {@linkplain de.gerdiproject.harvest.etls.FishStatJETL} and its sub-classes.
  *
  * @author Bohdan Tkachuk
  */
-package de.gerdiproject.harvest.harvester;
+package de.gerdiproject.harvest.etls;

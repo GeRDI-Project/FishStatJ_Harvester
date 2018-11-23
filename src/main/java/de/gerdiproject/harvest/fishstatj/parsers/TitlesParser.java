@@ -1,10 +1,13 @@
 package de.gerdiproject.harvest.fishstatj.parsers;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
+
+import com.google.gson.Gson;
 
 import de.gerdiproject.harvest.utils.data.HttpRequester;
 import de.gerdiproject.json.datacite.Title;
@@ -16,7 +19,7 @@ public class TitlesParser
 
     public TitlesParser()
     {
-        httpRequester = new HttpRequester();
+        httpRequester = new HttpRequester(new Gson(), StandardCharsets.UTF_8);
     }
 
     public List<Title> titleParser(String url)

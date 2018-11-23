@@ -4,20 +4,22 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import de.gerdiproject.json.datacite.extension.abstr.AbstractResearch;
+import de.gerdiproject.json.datacite.extension.constants.ResearchDisciplineConstants;
+
 public class FishstatjParameterConstants
 {
 
-    public static final String VERSION_KEY = "version";
     public static final String LANGUAGE_KEY = "language";
-    public static final String VERSION_DEFAULT = "v1";
     public static final String LANGUAGE_DEFAULT = "en";
     public final static String BASE_URL = "http://www.fao.org/fishery/statistics/collections/en";
     public final static String SITE_URL = "http://www.fao.org%s";
     public static final String PROVIDER = "Food and Agriculture Organization of the United Nations (FAO)";
 
 
-    public static final String REPOSITORY_ID = "FAOSTAT";
-    public static final List<String> DISCIPLINES = Collections.unmodifiableList(Arrays.asList("Statistics"));
+    public static final String REPOSITORY_ID = "FishStatJ";
+    public static final List<AbstractResearch> DISCIPLINES = Collections.unmodifiableList(
+                                                                 Arrays.asList(ResearchDisciplineConstants.STATISTICS_AND_ECONOMETRICS));
     public static final String LOGO_URL = "http://www.fao.org/figis/website/assets/images/templates/shared/fao_logo.gif";
     public static final String DESCRIPTION_FORMAT = "%s : %s";
     public static final String ATTRIBUTE_HREF = "href";

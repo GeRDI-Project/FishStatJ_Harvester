@@ -1,11 +1,14 @@
 package de.gerdiproject.harvest.fishstatj.parsers;
 
+import java.nio.charset.StandardCharsets;
 import java.util.LinkedList;
 import java.util.List;
 
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
+
+import com.google.gson.Gson;
 
 import de.gerdiproject.harvest.fishstatj.constants.FishstatjParameterConstants;
 import de.gerdiproject.harvest.utils.data.HttpRequester;
@@ -23,7 +26,7 @@ public class ContributorsParser
     public ContributorsParser()
     {
         // TODO Auto-generated constructor stub
-        httpRequester = new HttpRequester();
+        httpRequester = new HttpRequester(new Gson(), StandardCharsets.UTF_8);
     }
     public List<Contributor> contributorsParser(String url)
     {
