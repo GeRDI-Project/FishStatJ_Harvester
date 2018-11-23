@@ -15,7 +15,7 @@ public class UtilTxt
     private UtilTxt()
     {
     }
-    
+
 
     //read txt files, in resuly we have list of string
     public static List<String> readTextFile(String destination) throws IOException

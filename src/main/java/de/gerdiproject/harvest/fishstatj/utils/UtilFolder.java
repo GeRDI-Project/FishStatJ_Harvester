@@ -22,11 +22,11 @@ public class UtilFolder
      */
     private UtilFolder()
     {
-        
-        
+
+
     }
-    
-    
+
+
     //return list of relevant file
     public static  List<String> listOfFilesByFormat(String destination, String format)
     {
@@ -43,6 +43,7 @@ public class UtilFolder
         } catch (NullPointerException e) {
             log.error(ERROR_MESSAGE, e);
         }
+
         return listOfPath;
     }
 }

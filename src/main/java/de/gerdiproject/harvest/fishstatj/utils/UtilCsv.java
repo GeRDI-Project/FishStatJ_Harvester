@@ -21,7 +21,7 @@ public class UtilCsv
     private static final Logger log = LoggerFactory.getLogger(UtilZip.class);
     private static final String ERROR_MESSAGE = "Error";
 
-    
+
     /**
      * Private constructor, because only static methods are provided.
      */
