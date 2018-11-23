@@ -17,11 +17,16 @@ public class UtilFolder
     private static final Logger log = LoggerFactory.getLogger(UtilFolder.class);
 
 
-
-    public UtilFolder()
+    /**
+     * Private constructor, because only static methods are provided.
+     */
+    private UtilFolder()
     {
-
+        
+        
     }
+    
+    
     //return list of relevant file
     public static  List<String> listOfFilesByFormat(String destination, String format)
     {
@@ -31,18 +36,13 @@ public class UtilFolder
         try {
             File[] files = new File(destination).listFiles();
 
-            for (File file : files) {
+            for (File file : files)
                 if (file.isFile() && file.getName().contains(format))
                     listOfPath.add(FishstatjParameterConstants.PATH_DESTINATION_FOLDER + file.getName());
-
-
-            }
 
         } catch (NullPointerException e) {
             log.error(ERROR_MESSAGE, e);
         }
-
-
         return listOfPath;
     }
 }

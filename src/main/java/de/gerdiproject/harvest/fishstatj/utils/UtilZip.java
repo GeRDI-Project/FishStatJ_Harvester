@@ -27,10 +27,14 @@ public class UtilZip
     final static Charset ENCODING = StandardCharsets.UTF_8;
     private static final String ERROR_MESSAGE = "Error";
 
-    public UtilZip()
+    
+    /**
+     * Private constructor, because only static methods are provided.
+     */
+    private UtilZip()
     {
-
     }
+    
 
     //parse subjects
     public static String findLinkForDownload(String url)

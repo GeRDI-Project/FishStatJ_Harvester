@@ -39,5 +39,10 @@ public class FishstatjParameterConstants
     public static final String FILE_WITH_SHIFT = "COUNTRY";
 
 
-
+    /**
+     * Private constructor, because only static methods are provided.
+     */
+    private FishstatjParameterConstants()
+    {
+    }
 }
