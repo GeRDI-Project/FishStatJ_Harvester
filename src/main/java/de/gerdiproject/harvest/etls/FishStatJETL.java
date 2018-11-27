@@ -15,22 +15,22 @@
  */
 package de.gerdiproject.harvest.etls;
 
-import org.jsoup.nodes.Element;
-
 import de.gerdiproject.harvest.config.Configuration;
 import de.gerdiproject.harvest.config.parameters.StringParameter;
 import de.gerdiproject.harvest.etls.extractors.FishStatJExtractor;
+import de.gerdiproject.harvest.etls.extractors.FishStatJCollectionVO;
 import de.gerdiproject.harvest.etls.transformers.FishStatJTransformer;
-import de.gerdiproject.harvest.fishstatj.constants.FishstatjParameterConstants;
+import de.gerdiproject.harvest.fishstatj.constants.FishStatJParameterConstants;
 import de.gerdiproject.json.datacite.DataCiteJson;
 
 
 /**
- * A harvester for FishStatJ (http://www.fao.org/fishery/statistics/collections/en).
+ * This class is a {@linkplain StaticIteratorETL} for harvesting FishStatJ.
+ * See http://www.fao.org/fishery/statistics/collections/en.
  *
- * @author Bohdan Tkachuk
+ * @author Bohdan Tkachuk, Robin Weiss
  */
-public class FishStatJETL extends StaticIteratorETL<Element, DataCiteJson>
+public class FishStatJETL extends StaticIteratorETL<FishStatJCollectionVO, DataCiteJson>
 {
     private StringParameter languageParam;
 
@@ -51,9 +51,9 @@ public class FishStatJETL extends StaticIteratorETL<Element, DataCiteJson>
 
         this.languageParam = Configuration.registerParameter(
                                  new StringParameter(
-                                     FishstatjParameterConstants.LANGUAGE_KEY,
+                                     FishStatJParameterConstants.LANGUAGE_KEY,
                                      getName(),
-                                     FishstatjParameterConstants.LANGUAGE_DEFAULT));
+                                     FishStatJParameterConstants.LANGUAGE_DEFAULT));
     }
 
 

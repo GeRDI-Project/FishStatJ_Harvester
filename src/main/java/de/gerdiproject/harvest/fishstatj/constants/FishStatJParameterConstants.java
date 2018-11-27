@@ -13,29 +13,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package de.gerdiproject.harvest.fishstatj.utils;
+package de.gerdiproject.harvest.fishstatj.constants;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.List;
-
-public class UtilTxt
+/**
+ * This class contatins constants regarding configurable parameters.
+ *
+ * @author Bohdan Tkachuk, Robin Weiss
+ */
+public class FishStatJParameterConstants
 {
+
+    public static final String LANGUAGE_KEY = "language";
+    public static final String LANGUAGE_DEFAULT = "en";
+
     /**
-     * Private constructor, because only static methods are provided.
+     * Private constructor, because only constants are provided.
      */
-    private UtilTxt()
+    private FishStatJParameterConstants()
     {
-    }
-
-
-    //read txt files, in resuly we have list of string
-    public static List<String> readTextFile(String destination) throws IOException
-    {
-        Path path = Paths.get(destination);
-        return Files.readAllLines(path, StandardCharsets.ISO_8859_1);
     }
 }

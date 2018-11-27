@@ -16,42 +16,57 @@
  */
 package de.gerdiproject.harvest.etls.transformers;
 
+import java.io.File;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
+import java.util.regex.Matcher;
 
 import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
+
+import com.google.gson.Gson;
 
 import de.gerdiproject.harvest.etls.AbstractETL;
 import de.gerdiproject.harvest.etls.FishStatJETL;
-import de.gerdiproject.harvest.fishstatj.constants.FishstatjParameterConstants;
-import de.gerdiproject.harvest.fishstatj.parsers.ContributorsParser;
-import de.gerdiproject.harvest.fishstatj.parsers.DatesParser;
-import de.gerdiproject.harvest.fishstatj.parsers.DescriptionsParser;
-import de.gerdiproject.harvest.fishstatj.parsers.RightsParser;
-import de.gerdiproject.harvest.fishstatj.parsers.SubjectParser;
-import de.gerdiproject.harvest.fishstatj.parsers.TitlesParser;
-import de.gerdiproject.harvest.fishstatj.parsers.WeblinksParser;
-import de.gerdiproject.harvest.fishstatj.utils.UtilZip;
-import de.gerdiproject.json.datacite.Creator;
+import de.gerdiproject.harvest.etls.extractors.FishStatJCollectionVO;
+import de.gerdiproject.harvest.fishstatj.constants.FishStatJDataCiteConstants;
+import de.gerdiproject.harvest.fishstatj.constants.FishStatJFileConstants;
+import de.gerdiproject.harvest.fishstatj.constants.FishStatJSourceConstants;
+import de.gerdiproject.harvest.fishstatj.utils.CsvUtils;
+import de.gerdiproject.harvest.utils.data.DiskIO;
+import de.gerdiproject.harvest.utils.file.FileUtils;
+import de.gerdiproject.json.datacite.Contributor;
 import de.gerdiproject.json.datacite.DataCiteJson;
+import de.gerdiproject.json.datacite.Date;
+import de.gerdiproject.json.datacite.Description;
+import de.gerdiproject.json.datacite.Rights;
+import de.gerdiproject.json.datacite.Subject;
+import de.gerdiproject.json.datacite.Title;
+import de.gerdiproject.json.datacite.abstr.AbstractDate;
+import de.gerdiproject.json.datacite.enums.DateType;
+import de.gerdiproject.json.datacite.enums.DescriptionType;
+import de.gerdiproject.json.datacite.enums.TitleType;
+import de.gerdiproject.json.datacite.extension.ResearchData;
+import de.gerdiproject.json.datacite.extension.WebLink;
+import de.gerdiproject.json.datacite.extension.enums.WebLinkType;
 
 /**
- * @author Robin Weiss
- *
+ * This {@linkplain AbstractIteratorTransformer} implementation transforms FishStatJ collections to
+ * {@linkplain DataCiteJson} objects.
+
+ * @author Robin Weiss, Bohdan Tkachuk
  */
-public class FishStatJTransformer extends AbstractIteratorTransformer<Element, DataCiteJson>
+public class FishStatJTransformer extends AbstractIteratorTransformer<FishStatJCollectionVO, DataCiteJson>
 {
-    private final SubjectParser subjectParser = new SubjectParser();
-    private final ContributorsParser contributorsParser = new ContributorsParser();
-    private final TitlesParser titlesParser = new TitlesParser();
-    private final DescriptionsParser descriptionsParser = new DescriptionsParser();
-    private final WeblinksParser weblinksParser = new WeblinksParser();
-    private final RightsParser rightsParser = new RightsParser();
-    private final DatesParser datesParser = new DatesParser();
+    private final DiskIO diskReader = new DiskIO(new Gson(), StandardCharsets.UTF_8);
 
     private String language;
-
-
 
 
     @Override
@@ -62,49 +77,469 @@ public class FishStatJTransformer extends AbstractIteratorTransformer<Element, D
     }
 
 
-
-
     @Override
-    protected DataCiteJson transformElement(Element source) throws TransformerException
+    protected DataCiteJson transformElement(FishStatJCollectionVO source) throws TransformerException
     {
-        final String url = source.attr(FishstatjParameterConstants.ATTRIBUTE_HREF);
-
-        DataCiteJson document = new DataCiteJson(url);
+        final DataCiteJson document = new DataCiteJson(source.getCollectionUrl());
         document.setLanguage(language);
 
-        //parse titles
-        document.addTitles(titlesParser.titleParser(url));
+        // add static metadata
+        document.setRepositoryIdentifier(FishStatJDataCiteConstants.REPOSITORY_ID);
+        document.addCreators(FishStatJDataCiteConstants.CREATORS);
+        document.setPublisher(FishStatJDataCiteConstants.PROVIDER);
+        document.addResearchDisciplines(FishStatJDataCiteConstants.RESEARCH_DISCIPLINES);
 
-        //parse description
-        document.addDescriptions(descriptionsParser.descriptionParser(url));
+        // retrieve metadata by parsing web pages
+        document.addTitles(getTitles(source));
+        document.addDescriptions(getDescriptions(source));
+        document.addContributors(getContributors(source));
+        document.addResearchData(getResearchData(source));
+        document.addRights(getRights(source));
+        document.addWebLinks(getLogoAndViewWebLinks(source));
+        document.addWebLinks(getSideBarWebLinks(source));
+        document.addWebLinks(getSectionWebLinks(source));
 
-        //parse rights
-        document.addRights(rightsParser.rightsParser(url));
+        // retrieve metadata from downloaded zip archive
+        final File downloadFolder = source.getDownloadedFiles();
 
-        //parse weblinks
-        document.addWebLinks(weblinksParser.weblinksParser(url));
+        if (downloadFolder != null) {
+            document.addRights(getRightsFromDownloadedFiles(downloadFolder));
+            document.addDates(getDatesFromDownloadedFiles(downloadFolder));
+            document.addSubjects(getSubjectsFromDownloadedFiles(downloadFolder));
 
-        //parse contributors
-
-        document.addContributors(contributorsParser.contributorsParser(url));
-
-        //add creators, same as PROVIDER
-        Creator creator = new Creator(FishstatjParameterConstants.PROVIDER);
-        List<Creator> creatorList = new LinkedList<>();
-        creatorList.add(creator);
-        document.addCreators(creatorList);
-        document.setPublisher(FishstatjParameterConstants.PROVIDER);
-        document.addResearchDisciplines(FishstatjParameterConstants.DISCIPLINES);
-        document.setRepositoryIdentifier(FishstatjParameterConstants.REPOSITORY_ID);
-
-        document.addDates(datesParser.datesParser(url));
-        document.addSubjects(subjectParser.getSubjectFromUrl(url));
-
-        //if we found link for download, we add subjects
-        if (!UtilZip.findLinkForDownload(url).equals(""))
-            document.addSubjects(subjectParser.getSubjectFromUrl(url));
+            // clean up unzipped files
+            FileUtils.deleteFile(downloadFolder);
+        }
 
         return document;
     }
 
+
+    /**
+     * Retrieves a {@linkplain List} of {@linkplain Title}s of the FishStatJ collection.
+     *
+     * @param source the value object that is to be transformed to a document
+     *
+     * @return a {@linkplain List} of FishStatJ {@linkplain Title}s
+     */
+    private List<Title> getTitles(FishStatJCollectionVO source)
+    {
+        final List<Title> titleList = new ArrayList<Title>();
+
+        // add main title
+        final String titleText = source.getCollectionPage()
+                                 .selectFirst(FishStatJSourceConstants.MAIN_TITLE_SELECTION)
+                                 .text();
+        titleList.add(new Title(titleText));
+
+        // add category as sub-title
+        final String categoryText = source.getCollectionPage()
+                                    .selectFirst(FishStatJSourceConstants.SUB_TITLE_SELECTION)
+                                    .text();
+        final Title categoryTitle = new Title(categoryText);
+        categoryTitle.setType(TitleType.Subtitle);
+        titleList.add(categoryTitle);
+
+        return titleList;
+    }
+
+
+    /**
+     * Retrieves a {@linkplain List} of {@linkplain Description}s of the FishStatJ collection.
+     *
+     * @param source the value object that is to be transformed to a document
+     *
+     * @return a {@linkplain List} of FishStatJ {@linkplain Description}s
+     */
+    private List<Description> getDescriptions(FishStatJCollectionVO source)
+    {
+        final List<Description> descriptionList = new LinkedList<>();
+
+        // choose description related elements from the collection page
+        final Elements descriptionElements =
+            source.getCollectionPage()
+            .selectFirst(FishStatJSourceConstants.ALL_SECTIONS_SELECTION)
+            .children();
+
+        // iterate through pairs of description titles and texts
+        final int len = descriptionElements.size();
+        int i = 0;
+
+        while (i < len) {
+            final String descriptionTitle = descriptionElements.get(i++).text().trim();
+            final String descriptionText = descriptionElements.get(i++).text().trim();
+
+            if (FishStatJSourceConstants.VALID_DESCRIPTIONS.contains(descriptionTitle))
+                descriptionList.add(new Description(descriptionText, DescriptionType.Abstract));
+        }
+
+        return descriptionList;
+    }
+
+
+    /**
+     * Retrieves a {@linkplain List} of {@linkplain Rights} of the FishStatJ collection page.
+     *
+     * @param source the value object that is to be transformed to a document
+     *
+     * @return a {@linkplain List} of FishStatJ {@linkplain Rights}
+     */
+    private List<Rights> getRights(FishStatJCollectionVO source)
+    {
+        final List<Rights> rightsList = new LinkedList<>();
+
+        final Elements sectionElements = source.getCollectionPage()
+                                         .selectFirst(FishStatJSourceConstants.ALL_SECTIONS_SELECTION)
+                                         .children();
+
+        // iterate through pairs of description titles and texts
+        final int len = sectionElements.size();
+        int i = 0;
+
+        while (i < len) {
+            final String sectionTitle = sectionElements.get(i++).text().trim();
+            final Element sectionTextElement = sectionElements.get(i++);
+
+            if (sectionTitle.equals(FishStatJSourceConstants.SECTION_TITLE_CONTAINING_RIGHTS)) {
+
+                final Element rightsLink = sectionTextElement.selectFirst(FishStatJSourceConstants.LINKS_SELECTION);
+                final String rightsUrl = getUrlFromLink(rightsLink);
+
+                final Rights rights = new Rights(sectionTextElement.text().trim());
+                rights.setURI(rightsUrl);
+                rightsList.add(rights);
+            }
+        }
+
+        return rightsList;
+    }
+
+
+    /**
+     * Retrieves the logo and view {@linkplain WebLink}s of the FishStatJ collection.
+     *
+     * @param source the value object that is to be transformed to a document
+     *
+     * @return a {@linkplain List} of logo and view {@linkplain WebLink}s
+     */
+    private List<WebLink> getLogoAndViewWebLinks(FishStatJCollectionVO source)
+    {
+        final WebLink viewLink = new WebLink(source.getCollectionUrl());
+        viewLink.setName(FishStatJDataCiteConstants.VIEW_URL_TITLE);
+        viewLink.setType(WebLinkType.ViewURL);
+
+        // search for the subsecti
+        return Arrays.asList(viewLink, FishStatJDataCiteConstants.LOGO_LINK);
+    }
+
+
+    /**
+     * Retrieves a {@linkplain List} of {@linkplain WebLink}s of the FishStatJ collection.
+     *
+     * @param source the value object that is to be transformed to a document
+     *
+     * @return a {@linkplain List} of FishStatJ {@linkplain WebLink}s
+     */
+    private List<WebLink> getSectionWebLinks(FishStatJCollectionVO source)
+    {
+        // parse links from relevant section
+        final List<WebLink> weblinks = new LinkedList<>();
+        final Elements infoLinks = getCaptionsAndLinks(source);
+        int i = 0;
+        int len = infoLinks.size();
+
+        while (i < len) {
+            final Element titleElement = infoLinks.get(i++);
+            final Element linkElement = infoLinks.get(i++);
+            final String linkUrl = getUrlFromLink(linkElement);
+
+            // if this is a downloadable file, skip the link
+            if (FishStatJSourceConstants.DOWNLOADABLE_FILE_PATTERN.matcher(linkUrl).matches())
+                continue;
+
+            final String linkName = linkElement.text().isEmpty()
+                                    ? titleElement.text()
+                                    : linkElement.text();
+
+            final WebLinkType linkType = linkName.equals(FishStatJSourceConstants.PUBLICATION_TITLE)
+                                         ?  WebLinkType.Related
+                                         : WebLinkType.SourceURL;
+
+            final WebLink textLink = new WebLink(linkUrl);
+            textLink.setName(linkName);
+            textLink.setType(linkType);
+            weblinks.add(textLink);
+        }
+
+        return weblinks;
+    }
+
+
+    /**
+     * Retrieves a {@linkplain List} of {@linkplain ResearchData} of the FishStatJ collection.
+     *
+     * @param source the value object that is to be transformed to a document
+     *
+     * @return a {@linkplain List} of FishStatJ {@linkplain ResearchData}
+     */
+    private List<ResearchData> getResearchData(FishStatJCollectionVO source)
+    {
+
+        // parse links from relevant section
+        final List<ResearchData> downloads = new LinkedList<>();
+        final Elements infoLinks = getCaptionsAndLinks(source);
+        int i = 0;
+        int len = infoLinks.size();
+
+        while (i < len) {
+            // skip the title
+            i++;
+            final Element linkElement = infoLinks.get(i++);
+            final String fileUrl = getUrlFromLink(linkElement);
+
+            // if this is a downloadable file, skip the link
+            final Matcher matcher = FishStatJSourceConstants.DOWNLOADABLE_FILE_PATTERN.matcher(fileUrl);
+
+            if (matcher.find()) {
+                final String fileName = matcher.group(1);
+                final String fileExtension = linkElement.text().isEmpty() ? matcher.group(2) : linkElement.text();
+
+                final ResearchData download = new ResearchData(fileUrl, fileName);
+                download.setType(fileExtension);
+                downloads.add(download);
+            }
+
+        }
+
+        return downloads;
+    }
+
+
+    /**
+     * Retrieves side bar {@linkplain WebLink}s of the FishStatJ collection.
+     *
+     * @param source the value object that is to be transformed to a document
+     *
+     * @return a {@linkplain List} of side bar {@linkplain WebLink}s
+     */
+    private List<WebLink> getSideBarWebLinks(FishStatJCollectionVO source)
+    {
+        final List<WebLink> weblinks = new LinkedList<>();
+
+        // add side bar links
+        for (String sideBarSelection : FishStatJSourceConstants.SIDEBAR_SELECTIONS) {
+            final Element sideBar = source.getCollectionPage().selectFirst(sideBarSelection);
+
+            if (sideBar != null) {
+                final String sideBarUrl = String.format(
+                                              FishStatJSourceConstants.SITE_URL,
+                                              sideBar.attr(FishStatJSourceConstants.HREF_ATTRIBUTE)
+                                          );
+                final WebLink sideBarLink = new WebLink(sideBarUrl);
+                sideBarLink.setName(sideBar.text());
+                sideBarLink.setType(WebLinkType.Related);
+                weblinks.add(sideBarLink);
+            }
+        }
+
+        return weblinks;
+    }
+
+
+    /**
+     * Retrieves a {@linkplain List} of {@linkplain Contributor}s of the FishStatJ collection.
+     *
+     * @param source the value object that is to be transformed to a document
+     *
+     * @return a {@linkplain List} of FishStatJ {@linkplain Contributor}s
+     */
+    private List<Contributor> getContributors(FishStatJCollectionVO source)
+    {
+        final List<Contributor> contributorList = new LinkedList<>();
+
+        if (source.getContactsPage() != null) {
+            final Elements contactElements = source.getContactsPage().select(FishStatJSourceConstants.CONTACT_SELECTION);
+
+            for (Element item : contactElements) {
+                final String contributorName = item.text().trim();
+                final Contributor contributor = FishStatJSourceConstants.VALID_CONTRIBUTOR_MAP.get(contributorName);
+                contributorList.add(contributor);
+            }
+        }
+
+        return contributorList;
+    }
+
+
+    /**
+     * Reads the Notes.txt from the downloaded collection archive and extracts
+     * copyright information.
+     *
+     * @param unzippedFolder the folder containing unzipped collection archive files
+     *
+     * @return a {@linkplain List} of {@linkplain Rights}
+     */
+    private List<Rights> getRightsFromDownloadedFiles(File unzippedFolder)
+    {
+        final List<Rights> rightsList = new LinkedList<>();
+
+        // prepare file reader
+        final File readmeFile = new File(unzippedFolder, FishStatJFileConstants.README_FILE_NAME);
+
+        // read file
+        final String text = new DiskIO(new Gson(), StandardCharsets.UTF_8).getString(readmeFile);
+        final int subStringFrom = text.indexOf(FishStatJFileConstants.RIGHTS_TEXT_EXCLUDED_PREFIX);
+
+        // check if the file contains the required text area
+        if (subStringFrom != -1) {
+            final int subStringTo = text.indexOf(FishStatJFileConstants.RIGHTS_TEXT_EXCLUDED_SUFFIX, subStringFrom);
+
+            rightsList.add(new Rights(
+                               text.substring(
+                                   subStringFrom + FishStatJFileConstants.RIGHTS_TEXT_EXCLUDED_PREFIX.length(),
+                                   subStringTo)));
+        }
+
+        return rightsList;
+    }
+
+
+    /**
+     * Reads csv files from the downloaded collection archive and extracts
+     * metadata from them.
+     *
+     * @param unzippedFolder the folder containing unzipped collection archive files
+     *
+     * @return a {@linkplain List} of {@linkplain Subject}s
+     */
+    private Collection<Subject> getSubjectsFromDownloadedFiles(File unzippedFolder)
+    {
+        final Set<Subject> subjectList = new HashSet<Subject>();
+
+        final File[] csvFiles = unzippedFolder.listFiles(FishStatJFileConstants.CSV_FILE_FILTER);
+
+        for (int i = 0, len = csvFiles.length; i < len; i++) {
+
+            // calculate column shift
+            final int headerShift = csvFiles[i].getName().contains(FishStatJFileConstants.CSV_FILE_WITH_SHIFTED_HEADER) ? 1 : 0;
+
+            // retrieve title row
+            final List<String> titleRow = CsvUtils.getRow(0, csvFiles[i], StandardCharsets.UTF_8);
+
+            if (titleRow != null) {
+
+                // retrieve interesting columns
+                for (String colTitle : FishStatJSourceConstants.VALID_SUBJECTS) {
+                    final int columnIndex = titleRow.indexOf(colTitle) + headerShift;
+
+                    List<String> column = CsvUtils.getColumn(columnIndex, csvFiles[i], StandardCharsets.UTF_8);
+
+                    if (column != null)
+                        column.forEach((String element) -> subjectList.add(new Subject(element)));
+                }
+            }
+        }
+
+        return  subjectList;
+    }
+
+
+    /**
+     * Reads the Notes.txt from the downloaded collection archive and extracts
+     * date information.
+     *
+     * @param unzippedFolder the folder containing unzipped collection archive files
+     *
+     * @return a {@linkplain List} of {@linkplain AbstractDate}s
+     */
+    private List<AbstractDate> getDatesFromDownloadedFiles(File unzippedFolder)
+    {
+        final List<AbstractDate> dateList = new LinkedList<>();
+
+        // prepare file reader
+        final File readmeFile = new File(unzippedFolder, FishStatJFileConstants.README_FILE_NAME);
+
+        // read file
+        final String text = diskReader.getString(readmeFile);
+        final int subStringFrom = text.indexOf(FishStatJFileConstants.DATES_TEXT_EXCLUDED_PREFIX);
+
+        // check if the file contains the required text area
+        if (subStringFrom != -1) {
+            final int subStringTo = text.indexOf(FishStatJFileConstants.DATES_TEXT_EXCLUDED_SUFFIX, subStringFrom);
+
+            final String[] dateTextLines = text
+                                           .substring(subStringFrom + FishStatJFileConstants.DATES_TEXT_EXCLUDED_PREFIX.length(), subStringTo)
+                                           .split("\n");
+
+            for (int i = 0, len = dateTextLines.length; i < len; i++) {
+                final String[] dateInfo = dateTextLines[i].split("  ");
+                final String version = dateInfo[0];
+                final String dateString = dateInfo[1];
+                final String description = dateInfo[2];
+
+                final String dateInformation = String.format(FishStatJDataCiteConstants.DATE_INFORMATION, version, description);
+                final DateType dateType = description.contains(FishStatJFileConstants.ISSUED_DATE_KEYWORD)
+                                          ? DateType.Issued
+                                          : DateType.Updated;
+
+                final Date date = new Date(dateString, dateType);
+                date.setDateInformation(dateInformation);
+                dateList.add(date);
+            }
+        }
+
+        return dateList;
+    }
+
+
+    /**
+     * Helper function that returns spans and links from the FishStatJ collection.
+     *
+     * @param source the value object that is to be transformed to a document
+     *
+     * @return a list of spans and links
+     */
+    private Elements getCaptionsAndLinks(FishStatJCollectionVO source)
+    {
+        // search for the subsection that contains links
+        Elements infoLinks = null;
+        {
+            final Elements subSections = source.getCollectionPage()
+                                         .selectFirst(FishStatJSourceConstants.ALL_SECTIONS_SELECTION)
+                                         .children();
+
+            int i = 0;
+            final int subSectionCount = subSections.size();
+
+            while (i < subSectionCount) {
+                final String sectionText = subSections.get(i++).text().trim();
+                final Element subSectionBody = subSections.get(i++);
+
+                if (sectionText.equals(FishStatJSourceConstants.SECTION_TITLE_CONTAINING_LINKS)) {
+                    infoLinks = subSectionBody.children().select(FishStatJSourceConstants.LINKS_AND_CAPTIONS_SELECTION);
+                    break;
+                }
+            }
+        }
+        return infoLinks;
+    }
+
+
+    /**
+     * Retrieves the href attribute from an a-tag and formats it properly
+     * prior to returning it.
+     *
+     * @param linkElement the a-element of which the link is to be retrieved
+     *
+     * @return a formatted URL or null, if the linkElement is empty or lacks a href attribute
+     */
+    private String getUrlFromLink(Element linkElement)
+    {
+        if (linkElement == null || !linkElement.hasAttr(FishStatJSourceConstants.HREF_ATTRIBUTE))
+            return null;
+        else
+            return linkElement.attr(FishStatJSourceConstants.HREF_ATTRIBUTE)
+                   .replaceAll(FishStatJSourceConstants.LINK_REGEX,
+                               FishStatJSourceConstants.LINK_REGEX_REPLACE);
+    }
 }

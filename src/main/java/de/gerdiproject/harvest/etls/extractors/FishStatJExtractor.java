@@ -16,26 +16,39 @@
  */
 package de.gerdiproject.harvest.etls.extractors;
 
-import java.nio.charset.StandardCharsets;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.net.URL;
+import java.nio.channels.Channels;
+import java.nio.channels.ReadableByteChannel;
 import java.util.Iterator;
 
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
-
-import com.google.gson.Gson;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import de.gerdiproject.harvest.etls.AbstractETL;
-import de.gerdiproject.harvest.fishstatj.constants.FishstatjParameterConstants;
+import de.gerdiproject.harvest.fishstatj.constants.FishStatJFileConstants;
+import de.gerdiproject.harvest.fishstatj.constants.FishStatJSourceConstants;
 import de.gerdiproject.harvest.utils.data.HttpRequester;
+import de.gerdiproject.harvest.utils.file.FileUtils;
+import net.lingala.zip4j.core.ZipFile;
+import net.lingala.zip4j.exception.ZipException;
 
 /**
- * @author Robin Weiss, Bohdan Tkachuk
+ * This {@linkplain AbstractIteratorExtractor} implementation retrieves FishStatJ collections
+ * and gathers related web pages in order to create {@linkplain FishStatJCollectionVO}s.
  *
+ * @author Robin Weiss
  */
-public class FishStatJExtractor extends AbstractIteratorExtractor<Element>
+public class FishStatJExtractor extends AbstractIteratorExtractor<FishStatJCollectionVO>
 {
-    private final HttpRequester httpRequester = new HttpRequester(new Gson(), StandardCharsets.UTF_8);
+    private static final Logger LOGGER = LoggerFactory.getLogger(FishStatJExtractor.class);
+
+    private final HttpRequester httpRequester = new HttpRequester();
 
     private Iterator<Element> sourceIterator;
     private String version = null;
@@ -48,8 +61,8 @@ public class FishStatJExtractor extends AbstractIteratorExtractor<Element>
         super.init(etl);
         httpRequester.setCharset(etl.getCharset());
 
-        final Document baseWebsite = httpRequester.getHtmlFromUrl(FishstatjParameterConstants.BASE_URL);
-        final Elements fishStatJSources = baseWebsite.select("a[title=\"data collection\"], a[title=\"search interface\"], a[title=\"webpage\"], a[title=\"website; map\"]");
+        final Document baseWebsite = httpRequester.getHtmlFromUrl(FishStatJSourceConstants.BASE_URL);
+        final Elements fishStatJSources = baseWebsite.select(FishStatJSourceConstants.MAIN_PAGE_SELECTION);
 
         this.size = fishStatJSources.size();
 
@@ -75,26 +88,19 @@ public class FishStatJExtractor extends AbstractIteratorExtractor<Element>
 
 
     @Override
-    protected Iterator<Element> extractAll() throws ExtractorException
+    protected Iterator<FishStatJCollectionVO> extractAll() throws ExtractorException
     {
         return new FishStatJIterator();
     }
 
 
     /**
-     * This {@linkplain Iterator} iterates through FishStatJ HTML documents and
-     * generates
-     *
-     *
-     *
-     * TODO
-     *
-     *
+     * This {@linkplain Iterator} iterates through FishStatJ collections and
+     * generates a {@linkplain FishStatJCollectionVO} for each of them.
      *
      * @author Robin Weiss
-     *
      */
-    private class FishStatJIterator implements Iterator<Element>
+    private class FishStatJIterator implements Iterator<FishStatJCollectionVO>
     {
         @Override
         public boolean hasNext()
@@ -103,17 +109,133 @@ public class FishStatJExtractor extends AbstractIteratorExtractor<Element>
         }
 
         @Override
-        public Element next()
+        public FishStatJCollectionVO next()
         {
             final Element nextSource = sourceIterator.next();
-            final String url = nextSource.attr(FishstatjParameterConstants.ATTRIBUTE_HREF);
-            final Document subSite = httpRequester.getHtmlFromUrl(url);
+            final String url = nextSource.attr(FishStatJSourceConstants.HREF_ATTRIBUTE);
+            final Document collectionPage = httpRequester.getHtmlFromUrl(url);
 
-            if (subSite.hasText())
-                return nextSource;
+            if (collectionPage.hasText())
+                return new FishStatJCollectionVO(
+                           url,
+                           collectionPage,
+                           getContactsPage(collectionPage),
+                           downloadAndUnzipCollection(collectionPage));
             else
                 return null;
         }
 
+
+        /**
+         * Retrieves a web page that contains contact information regarding a collection.
+         *
+         * @param collectionPage the main web page of the FishStatJ collection
+         *
+         * @return a web page concerning contact information of a collection
+         */
+        private Document getContactsPage(Document collectionPage)
+        {
+            // find the "Contact" element on the web page
+            final Element contactsLink = collectionPage.select(FishStatJSourceConstants.ALL_CONTACTS_SELECTION).first();
+
+            if (contactsLink == null)
+                return null;
+
+            final String contactsUrl = String.format(
+                                           FishStatJSourceConstants.SITE_URL,
+                                           contactsLink.attr(FishStatJSourceConstants.HREF_ATTRIBUTE));
+
+            return httpRequester.getHtmlFromUrl(contactsUrl);
+        }
+
+
+        /**
+         * Checks if the collection web page offers a zip file download, and downloads
+         * and deflates the zip file if available.
+         *
+         * @param collectionPage the main web page of the FishStatJ collection
+         *
+         * @return a local directory containing the deflated zip archive, or null if there
+         *          were problems downloading or deflating the archive
+         */
+        private File downloadAndUnzipCollection(Document collectionPage)
+        {
+            // look for a link-element for downloading a zip-file
+            final Element zipLinkElement = collectionPage.selectFirst(FishStatJSourceConstants.ZIP_LINKS_SELECTION);
+
+            if (zipLinkElement == null)
+                return null;
+
+            // retrieve URL from link-element
+            final String zipUrl = zipLinkElement.attr(FishStatJSourceConstants.HREF_ATTRIBUTE);
+
+            if (zipUrl == null)
+                return null;
+
+            // download zip file
+            final boolean isDownloaded = downloadZipFromUrl(zipUrl, FishStatJSourceConstants.DOWNLOADED_ZIP_FILE);
+
+            if (!isDownloaded)
+                return null;
+
+            // unzip file
+            final File unzipFolder = new File(FishStatJSourceConstants.UNZIP_FOLDER + zipLinkElement.text().replaceAll("\\W", ""));
+            final boolean isUnzipped = unZip(FishStatJSourceConstants.DOWNLOADED_ZIP_FILE, unzipFolder);
+
+            if (!isUnzipped)
+                return null;
+
+            return unzipFolder;
+        }
+
+        /**
+         * Downloads a zip file to a specified path.
+         *
+         * @param downloadLink the URL that points to a zip file
+         * @param destination a local zip file path
+         *
+         * @return true if the download was successful
+         */
+        private boolean downloadZipFromUrl(String downloadLink, File destination)
+        {
+            try {
+                final URL downloadUrl = new URL(downloadLink);
+
+                try
+                    (FileOutputStream fileOutputStream = new FileOutputStream(destination)) {
+                    final ReadableByteChannel readableByteChannel = Channels.newChannel(downloadUrl.openStream());
+                    fileOutputStream.getChannel().transferFrom(readableByteChannel, 0, Long.MAX_VALUE);
+                }
+            } catch (IOException e) {
+                LOGGER.error(String.format(FishStatJFileConstants.DOWNLOAD_ERROR, downloadLink), e);
+                return false;
+            }
+
+            return true;
+        }
+
+
+        /**
+         * Attempts to extract the content of a zip file to a specified folder.
+         *
+         * @param zipFile the zip file that is to be extracted
+         * @param unzipFolder the folder to which the files are extracted
+         *
+         * @return true if the extraction was successful
+         */
+        private boolean unZip(File zipFile, File unzipFolder)
+        {
+            // cleanup left over files
+            FileUtils.deleteFile(unzipFolder);
+            FileUtils.createDirectories(unzipFolder);
+
+            try {
+                new ZipFile(zipFile).extractAll(unzipFolder.toString());
+                return true;
+            } catch (ZipException e) {
+                LOGGER.error(String.format(FishStatJFileConstants.UNZIP_ERROR, zipFile.toString()), e);
+                return false;
+            }
+        }
     }
 }
