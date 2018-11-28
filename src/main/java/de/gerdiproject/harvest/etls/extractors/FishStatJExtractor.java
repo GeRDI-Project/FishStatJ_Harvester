@@ -198,6 +198,8 @@ public class FishStatJExtractor extends AbstractIteratorExtractor<FishStatJColle
          */
         private boolean downloadZipFromUrl(String downloadLink, File destination)
         {
+            FileUtils.deleteFile(destination);
+
             try {
                 final URL downloadUrl = new URL(downloadLink);
 
@@ -234,6 +236,7 @@ public class FishStatJExtractor extends AbstractIteratorExtractor<FishStatJColle
                 return true;
             } catch (ZipException e) {
                 LOGGER.error(String.format(FishStatJFileConstants.UNZIP_ERROR, zipFile.toString()), e);
+                FileUtils.deleteFile(unzipFolder);
                 return false;
             }
         }

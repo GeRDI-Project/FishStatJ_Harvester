@@ -55,10 +55,10 @@ public class FishStatJSourceConstants
     public static final String ALL_CONTACTS_SELECTION = "a:contains(Contact)";
     public static final String CONTACT_SELECTION = ".padBottom";
 
-    public static final String ALL_SECTIONS_SELECTION = "#allWidth";
+    public static final String ALL_SECTIONS_SELECTION = "#allWidth > [class=tableHead], #allWidth > div:not(#pageHeader)";
 
     public static final String LINKS_SELECTION = "a";
-    public static final String LINKS_AND_CAPTIONS_SELECTION = "a, span";
+    public static final String LINKS_AND_CAPTIONS_SELECTION = "a, span[class=subtitle]";
     public static final String ZIP_LINKS_SELECTION  = "a[href$=.zip]";
 
     public static final List<String> SIDEBAR_SELECTIONS = Collections.unmodifiableList(Arrays.asList(

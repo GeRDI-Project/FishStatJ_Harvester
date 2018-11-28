@@ -18,12 +18,13 @@ package de.gerdiproject.harvest.etls.transformers;
 
 import java.io.File;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 
@@ -124,7 +125,7 @@ public class FishStatJTransformer extends AbstractIteratorTransformer<FishStatJC
      */
     private List<Title> getTitles(FishStatJCollectionVO source)
     {
-        final List<Title> titleList = new ArrayList<Title>();
+        final List<Title> titleList = new LinkedList<Title>();
 
         // add main title
         final String titleText = source.getCollectionPage()
@@ -155,22 +156,14 @@ public class FishStatJTransformer extends AbstractIteratorTransformer<FishStatJC
     {
         final List<Description> descriptionList = new LinkedList<>();
 
-        // choose description related elements from the collection page
-        final Elements descriptionElements =
-            source.getCollectionPage()
-            .selectFirst(FishStatJSourceConstants.ALL_SECTIONS_SELECTION)
-            .children();
+        final Map<String, Element> sections = getSections(source);
 
-        // iterate through pairs of description titles and texts
-        final int len = descriptionElements.size();
-        int i = 0;
+        // retrieve interesting section text
+        for (String sectionTitle : FishStatJSourceConstants.VALID_DESCRIPTIONS) {
+            final Element sectionBody = sections.get(sectionTitle);
 
-        while (i < len) {
-            final String descriptionTitle = descriptionElements.get(i++).text().trim();
-            final String descriptionText = descriptionElements.get(i++).text().trim();
-
-            if (FishStatJSourceConstants.VALID_DESCRIPTIONS.contains(descriptionTitle))
-                descriptionList.add(new Description(descriptionText, DescriptionType.Abstract));
+            if (sectionBody != null)
+                descriptionList.add(new Description(sectionBody.text().trim(), DescriptionType.Abstract));
         }
 
         return descriptionList;
@@ -188,27 +181,16 @@ public class FishStatJTransformer extends AbstractIteratorTransformer<FishStatJC
     {
         final List<Rights> rightsList = new LinkedList<>();
 
-        final Elements sectionElements = source.getCollectionPage()
-                                         .selectFirst(FishStatJSourceConstants.ALL_SECTIONS_SELECTION)
-                                         .children();
+        // check if one of the sections can be parsed as Rights
+        final Element rightsSection = getSections(source).get(FishStatJSourceConstants.SECTION_TITLE_CONTAINING_RIGHTS);
 
-        // iterate through pairs of description titles and texts
-        final int len = sectionElements.size();
-        int i = 0;
+        if (rightsSection != null) {
+            final Element rightsLink = rightsSection.selectFirst(FishStatJSourceConstants.LINKS_SELECTION);
+            final String rightsUrl = getUrlFromLink(rightsLink);
 
-        while (i < len) {
-            final String sectionTitle = sectionElements.get(i++).text().trim();
-            final Element sectionTextElement = sectionElements.get(i++);
-
-            if (sectionTitle.equals(FishStatJSourceConstants.SECTION_TITLE_CONTAINING_RIGHTS)) {
-
-                final Element rightsLink = sectionTextElement.selectFirst(FishStatJSourceConstants.LINKS_SELECTION);
-                final String rightsUrl = getUrlFromLink(rightsLink);
-
-                final Rights rights = new Rights(sectionTextElement.text().trim());
-                rights.setURI(rightsUrl);
-                rightsList.add(rights);
-            }
+            final Rights rights = new Rights(rightsSection.text().trim());
+            rights.setURI(rightsUrl);
+            rightsList.add(rights);
         }
 
         return rightsList;
@@ -244,22 +226,40 @@ public class FishStatJTransformer extends AbstractIteratorTransformer<FishStatJC
     {
         // parse links from relevant section
         final List<WebLink> weblinks = new LinkedList<>();
-        final Elements infoLinks = getCaptionsAndLinks(source);
+        final Element linkSection = getSections(source)
+                                    .get(FishStatJSourceConstants.SECTION_TITLE_CONTAINING_LINKS);
+
+        if (linkSection == null)
+            return weblinks;
+
+        final Elements infoLinks = linkSection.children().select(FishStatJSourceConstants.LINKS_AND_CAPTIONS_SELECTION);
+
         int i = 0;
         int len = infoLinks.size();
 
+        Element titleElement = null;
+
         while (i < len) {
-            final Element titleElement = infoLinks.get(i++);
-            final Element linkElement = infoLinks.get(i++);
+            final Element ele = infoLinks.get(i++);
+
+            if (ele.hasClass("subtitle")) {
+                titleElement = ele;
+                continue;
+            }
+
+            final Element linkElement = ele;
             final String linkUrl = getUrlFromLink(linkElement);
 
             // if this is a downloadable file, skip the link
             if (FishStatJSourceConstants.DOWNLOADABLE_FILE_PATTERN.matcher(linkUrl).matches())
                 continue;
 
-            final String linkName = linkElement.text().isEmpty()
-                                    ? titleElement.text()
-                                    : linkElement.text();
+            final String linkName;
+
+            if (linkElement.text().isEmpty() && titleElement != null)
+                linkName = titleElement.text();
+            else
+                linkName = linkElement.text();
 
             final WebLinkType linkType = linkName.equals(FishStatJSourceConstants.PUBLICATION_TITLE)
                                          ?  WebLinkType.Related
@@ -284,16 +284,22 @@ public class FishStatJTransformer extends AbstractIteratorTransformer<FishStatJC
      */
     private List<ResearchData> getResearchData(FishStatJCollectionVO source)
     {
-
         // parse links from relevant section
         final List<ResearchData> downloads = new LinkedList<>();
-        final Elements infoLinks = getCaptionsAndLinks(source);
+        final Element linkSection = getSections(source).
+                                    get(FishStatJSourceConstants.SECTION_TITLE_CONTAINING_LINKS);
+
+        // if the section does not exist, there are no links
+        if (linkSection == null)
+            return downloads;
+
+        final Elements infoLinks = linkSection.children().select(FishStatJSourceConstants.LINKS_SELECTION);
+
         int i = 0;
         int len = infoLinks.size();
 
         while (i < len) {
             // skip the title
-            i++;
             final Element linkElement = infoLinks.get(i++);
             final String fileUrl = getUrlFromLink(linkElement);
 
@@ -308,7 +314,6 @@ public class FishStatJTransformer extends AbstractIteratorTransformer<FishStatJC
                 download.setType(fileExtension);
                 downloads.add(download);
             }
-
         }
 
         return downloads;
@@ -386,18 +391,20 @@ public class FishStatJTransformer extends AbstractIteratorTransformer<FishStatJC
         // prepare file reader
         final File readmeFile = new File(unzippedFolder, FishStatJFileConstants.README_FILE_NAME);
 
-        // read file
-        final String text = new DiskIO(new Gson(), StandardCharsets.UTF_8).getString(readmeFile);
-        final int subStringFrom = text.indexOf(FishStatJFileConstants.RIGHTS_TEXT_EXCLUDED_PREFIX);
+        if (readmeFile.exists()) {
+            // read file
+            final String text = new DiskIO(new Gson(), StandardCharsets.UTF_8).getString(readmeFile);
+            final int subStringFrom = text.indexOf(FishStatJFileConstants.RIGHTS_TEXT_EXCLUDED_PREFIX);
 
-        // check if the file contains the required text area
-        if (subStringFrom != -1) {
-            final int subStringTo = text.indexOf(FishStatJFileConstants.RIGHTS_TEXT_EXCLUDED_SUFFIX, subStringFrom);
+            // check if the file contains the required text area
+            if (subStringFrom != -1) {
+                final int subStringTo = text.indexOf(FishStatJFileConstants.RIGHTS_TEXT_EXCLUDED_SUFFIX, subStringFrom);
 
-            rightsList.add(new Rights(
-                               text.substring(
-                                   subStringFrom + FishStatJFileConstants.RIGHTS_TEXT_EXCLUDED_PREFIX.length(),
-                                   subStringTo)));
+                rightsList.add(new Rights(
+                                   text.substring(
+                                       subStringFrom + FishStatJFileConstants.RIGHTS_TEXT_EXCLUDED_PREFIX.length(),
+                                       subStringTo)));
+            }
         }
 
         return rightsList;
@@ -432,10 +439,12 @@ public class FishStatJTransformer extends AbstractIteratorTransformer<FishStatJC
                 for (String colTitle : FishStatJSourceConstants.VALID_SUBJECTS) {
                     final int columnIndex = titleRow.indexOf(colTitle) + headerShift;
 
-                    List<String> column = CsvUtils.getColumn(columnIndex, csvFiles[i], StandardCharsets.UTF_8);
+                    if (columnIndex != -1) {
+                        final List<String> column = CsvUtils.getColumn(columnIndex, csvFiles[i], StandardCharsets.UTF_8);
 
-                    if (column != null)
-                        column.forEach((String element) -> subjectList.add(new Subject(element)));
+                        if (column != null)
+                            column.forEach((String element) -> subjectList.add(new Subject(element)));
+                    }
                 }
             }
         }
@@ -459,69 +468,63 @@ public class FishStatJTransformer extends AbstractIteratorTransformer<FishStatJC
         // prepare file reader
         final File readmeFile = new File(unzippedFolder, FishStatJFileConstants.README_FILE_NAME);
 
-        // read file
-        final String text = diskReader.getString(readmeFile);
-        final int subStringFrom = text.indexOf(FishStatJFileConstants.DATES_TEXT_EXCLUDED_PREFIX);
+        if (readmeFile.exists()) {
+            // read file
+            final String text = diskReader.getString(readmeFile);
+            final int subStringFrom = text.indexOf(FishStatJFileConstants.DATES_TEXT_EXCLUDED_PREFIX);
 
-        // check if the file contains the required text area
-        if (subStringFrom != -1) {
-            final int subStringTo = text.indexOf(FishStatJFileConstants.DATES_TEXT_EXCLUDED_SUFFIX, subStringFrom);
+            // check if the file contains the required text area
+            if (subStringFrom != -1) {
+                final int subStringTo = text.indexOf(FishStatJFileConstants.DATES_TEXT_EXCLUDED_SUFFIX, subStringFrom);
 
-            final String[] dateTextLines = text
-                                           .substring(subStringFrom + FishStatJFileConstants.DATES_TEXT_EXCLUDED_PREFIX.length(), subStringTo)
-                                           .split("\n");
+                final String[] dateTextLines = text
+                                               .substring(subStringFrom + FishStatJFileConstants.DATES_TEXT_EXCLUDED_PREFIX.length(), subStringTo)
+                                               .split("\n");
 
-            for (int i = 0, len = dateTextLines.length; i < len; i++) {
-                final String[] dateInfo = dateTextLines[i].split("  ");
-                final String version = dateInfo[0];
-                final String dateString = dateInfo[1];
-                final String description = dateInfo[2];
+                for (int i = 0, len = dateTextLines.length; i < len; i++) {
+                    final String[] dateInfo = dateTextLines[i].split("  ");
+                    final String version = dateInfo[0];
+                    final String dateString = dateInfo[1];
+                    final String description = dateInfo[2];
 
-                final String dateInformation = String.format(FishStatJDataCiteConstants.DATE_INFORMATION, version, description);
-                final DateType dateType = description.contains(FishStatJFileConstants.ISSUED_DATE_KEYWORD)
-                                          ? DateType.Issued
-                                          : DateType.Updated;
+                    final String dateInformation = String.format(FishStatJDataCiteConstants.DATE_INFORMATION, version, description);
+                    final DateType dateType = description.contains(FishStatJFileConstants.ISSUED_DATE_KEYWORD)
+                                              ? DateType.Issued
+                                              : DateType.Updated;
 
-                final Date date = new Date(dateString, dateType);
-                date.setDateInformation(dateInformation);
-                dateList.add(date);
+                    final Date date = new Date(dateString, dateType);
+                    date.setDateInformation(dateInformation);
+                    dateList.add(date);
+                }
             }
         }
 
         return dateList;
     }
 
-
     /**
-     * Helper function that returns spans and links from the FishStatJ collection.
+     * Retrieves a map of collection section titles to corresponding body elements.
      *
      * @param source the value object that is to be transformed to a document
      *
-     * @return a list of spans and links
+     * @return a map of collection section titles to corresponding body elements
      */
-    private Elements getCaptionsAndLinks(FishStatJCollectionVO source)
+    private Map<String, Element> getSections(FishStatJCollectionVO source)
     {
-        // search for the subsection that contains links
-        Elements infoLinks = null;
-        {
-            final Elements subSections = source.getCollectionPage()
-                                         .selectFirst(FishStatJSourceConstants.ALL_SECTIONS_SELECTION)
-                                         .children();
+        final Map<String, Element> map = new HashMap<>();
+        final Elements subSections = source.getCollectionPage().select(FishStatJSourceConstants.ALL_SECTIONS_SELECTION);
 
-            int i = 0;
-            final int subSectionCount = subSections.size();
+        // disregard the first element, because it's uninteresting
+        int i = 0;
+        final int subSectionCount = subSections.size();
 
-            while (i < subSectionCount) {
-                final String sectionText = subSections.get(i++).text().trim();
-                final Element subSectionBody = subSections.get(i++);
-
-                if (sectionText.equals(FishStatJSourceConstants.SECTION_TITLE_CONTAINING_LINKS)) {
-                    infoLinks = subSectionBody.children().select(FishStatJSourceConstants.LINKS_AND_CAPTIONS_SELECTION);
-                    break;
-                }
-            }
+        while (i < subSectionCount) {
+            final String sectionTitle = subSections.get(i++).text().trim();
+            final Element sectionBody = subSections.get(i++);
+            map.put(sectionTitle, sectionBody);
         }
-        return infoLinks;
+
+        return map;
     }
 
 
