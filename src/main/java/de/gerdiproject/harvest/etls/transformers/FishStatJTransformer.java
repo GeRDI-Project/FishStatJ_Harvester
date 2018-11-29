@@ -229,44 +229,40 @@ public class FishStatJTransformer extends AbstractIteratorTransformer<FishStatJC
     {
         // parse links from relevant section
         final List<WebLink> weblinks = new LinkedList<>();
-        final Element linkSection = getSections(source)
-                                    .get(FishStatJSourceConstants.SECTION_TITLE_CONTAINING_LINKS);
+        final Map<String, Element> sections = getSections(source);
 
-        if (linkSection == null)
-            return weblinks;
+        // parse dataset links
+        final Element datasetSection = sections.get(FishStatJSourceConstants.SECTION_TITLE_CONTAINING_LINKS);
 
-        final Elements infoLinks = linkSection.children().select(FishStatJSourceConstants.LINKS_AND_CAPTIONS_SELECTION);
+        if (datasetSection != null) {
+            final Elements infoLinks = datasetSection.children().select(FishStatJSourceConstants.LINKS_AND_CAPTIONS_SELECTION);
+            String titleAboveLink = "";
 
-        Element titleElement = null;
+            for (Element ele : infoLinks) {
+                // if the element is a title before a link, store it
+                if (ele.hasClass(FishStatJSourceConstants.CAPTION_CLASS))
+                    titleAboveLink = ele.text().trim();
+                else {
+                    final WebLink link = parseWebLink(ele, titleAboveLink);
 
-        for (Element ele : infoLinks) {
-            if (ele.hasClass(FishStatJSourceConstants.CAPTION_CLASS)) {
-                titleElement = ele;
-                continue;
+                    if (link != null) {
+                        if (titleAboveLink.equals(FishStatJSourceConstants.DATASET_TITLE))
+                            link.setType(WebLinkType.SourceURL);
+
+                        weblinks.add(link);
+                    }
+                }
             }
+        }
 
-            final Element linkElement = ele;
-            final String linkUrl = getUrlFromLink(linkElement);
+        // parse other related web links
+        for (String sectionTitle : sections.keySet()) {
+            if (!sectionTitle.equals(FishStatJSourceConstants.SECTION_TITLE_CONTAINING_LINKS)) {
+                final Elements infoLinks = sections.get(sectionTitle).select(FishStatJSourceConstants.LINKS_SELECTION);
 
-            // if this is a downloadable file, skip the link
-            if (FishStatJSourceConstants.DOWNLOADABLE_FILE_PATTERN.matcher(linkUrl).matches())
-                continue;
-
-            final String linkName;
-
-            if (linkElement.text().isEmpty() && titleElement != null)
-                linkName = titleElement.text();
-            else
-                linkName = linkElement.text();
-
-            final WebLinkType linkType = linkName.equals(FishStatJSourceConstants.DATASET_TITLE)
-                                         ?  WebLinkType.SourceURL
-                                         : WebLinkType.Related;
-
-            final WebLink textLink = new WebLink(linkUrl);
-            textLink.setName(linkName);
-            textLink.setType(linkType);
-            weblinks.add(textLink);
+                for (Element ele : infoLinks)
+                    weblinks.add(parseWebLink(ele, ""));
+            }
         }
 
         return weblinks;
@@ -549,7 +545,7 @@ public class FishStatJTransformer extends AbstractIteratorTransformer<FishStatJC
      * Retrieves the href attribute from an a-tag and formats it properly
      * prior to returning it.
      *
-     * @param linkElement the a-element of which the link is to be retrieved
+     * @param linkElement the a-tag of which the link is to be retrieved
      *
      * @return a formatted URL or null, if the linkElement is empty or lacks a href attribute
      */
@@ -561,5 +557,36 @@ public class FishStatJTransformer extends AbstractIteratorTransformer<FishStatJC
             return linkElement.attr(FishStatJSourceConstants.HREF_ATTRIBUTE)
                    .replaceAll(FishStatJSourceConstants.NEW_WINDOW_LINK_REGEX, FishStatJSourceConstants.NEW_WINDOW_LINK_REPLACE)
                    .replaceAll(FishStatJSourceConstants.RELATIVE_LINK_REGEX, FishStatJSourceConstants.RELATIVE_LINK_REPLACE);
+    }
+
+
+    /**
+     * Parses a link element and generates a {@linkplain WebLink} from it.
+     *
+     * @param linkElement the a-tag of which the link is to be retrieved
+     * @param alternativeTitle if the link has no text, this string is used instead
+     *
+     * @return a {@linkplain WebLink} or null, if the element is a download link
+     */
+    private static WebLink parseWebLink(Element linkElement, String alternativeTitle)
+    {
+        final String url = getUrlFromLink(linkElement);
+
+        // make sure the title is not a download link
+        if (FishStatJSourceConstants.DOWNLOADABLE_FILE_PATTERN.matcher(url).matches())
+            return null;
+
+        // retrieve the title of the web link
+        String title = linkElement.text().isEmpty() ? alternativeTitle : linkElement.text();
+
+        // remove the "Click here" part of the title, if applicable
+        title = title.replace(FishStatJSourceConstants.CLICK_HERE_REGEX, FishStatJSourceConstants.CLICK_HERE_REPLACE);
+
+        // determine the type of the web link
+        final WebLinkType type = title.endsWith(FishStatJSourceConstants.GIF_EXTENSION)
+                                 ? WebLinkType.ThumbnailURL
+                                 : WebLinkType.Related;
+
+        return new WebLink(url, title, type);
     }
 }
