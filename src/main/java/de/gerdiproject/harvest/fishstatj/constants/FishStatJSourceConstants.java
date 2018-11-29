@@ -79,8 +79,10 @@ public class FishStatJSourceConstants
     public static final Map<String, Contributor> VALID_CONTRIBUTOR_MAP = createValidContributorMap();
 
     public static final Pattern DOWNLOADABLE_FILE_PATTERN = Pattern.compile("(?:.+)/([^/]+)\\.(zip)$");
-    public static final String LINK_REGEX = "(?:javascript:new_window\\(')?(?:https?://www\\.fao\\.org)?([^']+)(?:'.+\\);)?";
-    public static final String LINK_REGEX_REPLACE = "http://www.fao.org$1";
+    public static final String NEW_WINDOW_LINK_REGEX = "^javascript:new_window\\('([^']+)'.+\\);$";
+    public static final String NEW_WINDOW_LINK_REPLACE = "$1";
+    public static final String RELATIVE_LINK_REGEX = "^(/.+)$";
+    public static final String RELATIVE_LINK_REPLACE = "http://www.fao.org$1";
 
     public static final String HREF_ATTRIBUTE = "href";
 

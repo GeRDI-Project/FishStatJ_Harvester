@@ -559,7 +559,7 @@ public class FishStatJTransformer extends AbstractIteratorTransformer<FishStatJC
             return null;
         else
             return linkElement.attr(FishStatJSourceConstants.HREF_ATTRIBUTE)
-                   .replaceAll(FishStatJSourceConstants.LINK_REGEX,
-                               FishStatJSourceConstants.LINK_REGEX_REPLACE);
+                   .replaceAll(FishStatJSourceConstants.NEW_WINDOW_LINK_REGEX, FishStatJSourceConstants.NEW_WINDOW_LINK_REPLACE)
+                   .replaceAll(FishStatJSourceConstants.RELATIVE_LINK_REGEX, FishStatJSourceConstants.RELATIVE_LINK_REPLACE);
     }
 }
