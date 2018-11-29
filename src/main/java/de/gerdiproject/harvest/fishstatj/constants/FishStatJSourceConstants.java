@@ -58,7 +58,8 @@ public class FishStatJSourceConstants
     public static final String ALL_SECTIONS_SELECTION = "#allWidth > [class=tableHead], #allWidth > div:not(#pageHeader)";
 
     public static final String LINKS_SELECTION = "a";
-    public static final String LINKS_AND_CAPTIONS_SELECTION = "a, span[class=subtitle]";
+    public static final String CAPTION_CLASS = "subtitle";
+    public static final String LINKS_AND_CAPTIONS_SELECTION = "a, span[class=" + CAPTION_CLASS + "]";
     public static final String ZIP_LINKS_SELECTION  = "a[href$=.zip]";
 
     public static final List<String> SIDEBAR_SELECTIONS = Collections.unmodifiableList(Arrays.asList(

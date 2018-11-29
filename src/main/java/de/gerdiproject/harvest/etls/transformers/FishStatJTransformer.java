@@ -99,6 +99,7 @@ public class FishStatJTransformer extends AbstractIteratorTransformer<FishStatJC
         document.addWebLinks(getLogoAndViewWebLinks(source));
         document.addWebLinks(getSideBarWebLinks(source));
         document.addWebLinks(getSectionWebLinks(source));
+        document.addSubjects(getSubjects(source));
 
         // retrieve metadata from downloaded zip archive
         final File downloadFolder = source.getDownloadedFiles();
@@ -234,15 +235,10 @@ public class FishStatJTransformer extends AbstractIteratorTransformer<FishStatJC
 
         final Elements infoLinks = linkSection.children().select(FishStatJSourceConstants.LINKS_AND_CAPTIONS_SELECTION);
 
-        int i = 0;
-        int len = infoLinks.size();
-
         Element titleElement = null;
 
-        while (i < len) {
-            final Element ele = infoLinks.get(i++);
-
-            if (ele.hasClass("subtitle")) {
+        for (Element ele : infoLinks) {
+            if (ele.hasClass(FishStatJSourceConstants.CAPTION_CLASS)) {
                 titleElement = ele;
                 continue;
             }
@@ -295,12 +291,7 @@ public class FishStatJTransformer extends AbstractIteratorTransformer<FishStatJC
 
         final Elements infoLinks = linkSection.children().select(FishStatJSourceConstants.LINKS_SELECTION);
 
-        int i = 0;
-        int len = infoLinks.size();
-
-        while (i < len) {
-            // skip the title
-            final Element linkElement = infoLinks.get(i++);
+        for (Element linkElement : infoLinks) {
             final String fileUrl = getUrlFromLink(linkElement);
 
             // if this is a downloadable file, skip the link
@@ -373,6 +364,31 @@ public class FishStatJTransformer extends AbstractIteratorTransformer<FishStatJC
         }
 
         return contributorList;
+    }
+
+
+    /**
+     * Retrieves a {@linkplain List} of {@linkplain Subject}s of the FishStatJ collection.
+     *
+     * @param source the value object that is to be transformed to a document
+     *
+     * @return a {@linkplain List} of FishStatJ {@linkplain Subject}s
+     */
+    private Collection<Subject> getSubjects(FishStatJCollectionVO source)
+    {
+        final List<Subject> subjectList = new LinkedList<Subject>();
+
+        final Element subjectSection = getSections(source).
+                                       get(FishStatJSourceConstants.SECTION_TITLE_CONTAINING_SUBJECTS);
+
+        if (subjectSection != null) {
+            final String[] usages = subjectSection.text().split(", ");
+
+            for (int i = 0, len = usages.length; i < len; i++)
+                subjectList.add(new Subject(usages[i], language));
+        }
+
+        return subjectList;
     }
 
 
@@ -502,6 +518,7 @@ public class FishStatJTransformer extends AbstractIteratorTransformer<FishStatJC
         return dateList;
     }
 
+
     /**
      * Retrieves a map of collection section titles to corresponding body elements.
      *
@@ -509,7 +526,7 @@ public class FishStatJTransformer extends AbstractIteratorTransformer<FishStatJC
      *
      * @return a map of collection section titles to corresponding body elements
      */
-    private Map<String, Element> getSections(FishStatJCollectionVO source)
+    private static Map<String, Element> getSections(FishStatJCollectionVO source)
     {
         final Map<String, Element> map = new HashMap<>();
         final Elements subSections = source.getCollectionPage().select(FishStatJSourceConstants.ALL_SECTIONS_SELECTION);
@@ -536,7 +553,7 @@ public class FishStatJTransformer extends AbstractIteratorTransformer<FishStatJC
      *
      * @return a formatted URL or null, if the linkElement is empty or lacks a href attribute
      */
-    private String getUrlFromLink(Element linkElement)
+    private static String getUrlFromLink(Element linkElement)
     {
         if (linkElement == null || !linkElement.hasAttr(FishStatJSourceConstants.HREF_ATTRIBUTE))
             return null;
