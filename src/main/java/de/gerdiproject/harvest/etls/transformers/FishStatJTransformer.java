@@ -51,11 +51,10 @@ import de.gerdiproject.json.datacite.Subject;
 import de.gerdiproject.json.datacite.Title;
 import de.gerdiproject.json.datacite.abstr.AbstractDate;
 import de.gerdiproject.json.datacite.enums.DateType;
-import de.gerdiproject.json.datacite.enums.DescriptionType;
 import de.gerdiproject.json.datacite.enums.TitleType;
-import de.gerdiproject.json.datacite.extension.ResearchData;
-import de.gerdiproject.json.datacite.extension.WebLink;
-import de.gerdiproject.json.datacite.extension.enums.WebLinkType;
+import de.gerdiproject.json.datacite.extension.generic.ResearchData;
+import de.gerdiproject.json.datacite.extension.generic.WebLink;
+import de.gerdiproject.json.datacite.extension.generic.enums.WebLinkType;
 
 /**
  * This {@linkplain AbstractIteratorTransformer} implementation transforms FishStatJ collections to
@@ -132,15 +131,13 @@ public class FishStatJTransformer extends AbstractIteratorTransformer<FishStatJC
         final String titleText = source.getCollectionPage()
                                  .selectFirst(FishStatJSourceConstants.MAIN_TITLE_SELECTION)
                                  .text();
-        titleList.add(new Title(titleText));
+        titleList.add(new Title(titleText, null, language));
 
         // add category as sub-title
         final String categoryText = source.getCollectionPage()
                                     .selectFirst(FishStatJSourceConstants.SUB_TITLE_SELECTION)
                                     .text();
-        final Title categoryTitle = new Title(categoryText);
-        categoryTitle.setType(TitleType.Subtitle);
-        titleList.add(categoryTitle);
+        titleList.add(new Title(categoryText, TitleType.Subtitle, language));
 
         return titleList;
     }
@@ -160,11 +157,16 @@ public class FishStatJTransformer extends AbstractIteratorTransformer<FishStatJC
         final Map<String, Element> sections = getSections(source);
 
         // retrieve interesting section text
-        for (String sectionTitle : FishStatJSourceConstants.VALID_DESCRIPTIONS) {
+        for (String sectionTitle : FishStatJSourceConstants.VALID_DESCRIPTION_MAP.keySet()) {
             final Element sectionBody = sections.get(sectionTitle);
 
-            if (sectionBody != null)
-                descriptionList.add(new Description(sectionBody.text().trim(), DescriptionType.Abstract));
+            if (sectionBody != null) {
+                final Description desc = new Description(
+                    sectionBody.text().trim(),
+                    FishStatJSourceConstants.VALID_DESCRIPTION_MAP.get(sectionTitle),
+                    language);
+                descriptionList.add(desc);
+            }
         }
 
         return descriptionList;
@@ -187,11 +189,10 @@ public class FishStatJTransformer extends AbstractIteratorTransformer<FishStatJC
 
         if (rightsSection != null) {
             final Element rightsLink = rightsSection.selectFirst(FishStatJSourceConstants.LINKS_SELECTION);
+            final String rightsText = rightsSection.text().trim();
             final String rightsUrl = getUrlFromLink(rightsLink);
 
-            final Rights rights = new Rights(rightsSection.text().trim());
-            rights.setURI(rightsUrl);
-            rightsList.add(rights);
+            rightsList.add(new Rights(rightsText, language, rightsUrl));
         }
 
         return rightsList;
@@ -207,9 +208,10 @@ public class FishStatJTransformer extends AbstractIteratorTransformer<FishStatJC
      */
     private List<WebLink> getLogoAndViewWebLinks(FishStatJCollectionVO source)
     {
-        final WebLink viewLink = new WebLink(source.getCollectionUrl());
-        viewLink.setName(FishStatJDataCiteConstants.VIEW_URL_TITLE);
-        viewLink.setType(WebLinkType.ViewURL);
+        final WebLink viewLink = new WebLink(
+            source.getCollectionUrl(),
+            FishStatJDataCiteConstants.VIEW_URL_TITLE,
+            WebLinkType.ViewURL);
 
         // search for the subsecti
         return Arrays.asList(viewLink, FishStatJDataCiteConstants.LOGO_LINK);
@@ -257,9 +259,9 @@ public class FishStatJTransformer extends AbstractIteratorTransformer<FishStatJC
             else
                 linkName = linkElement.text();
 
-            final WebLinkType linkType = linkName.equals(FishStatJSourceConstants.PUBLICATION_TITLE)
-                                         ?  WebLinkType.Related
-                                         : WebLinkType.SourceURL;
+            final WebLinkType linkType = linkName.equals(FishStatJSourceConstants.DATASET_TITLE)
+                                         ?  WebLinkType.SourceURL
+                                         : WebLinkType.Related;
 
             final WebLink textLink = new WebLink(linkUrl);
             textLink.setName(linkName);
@@ -301,9 +303,7 @@ public class FishStatJTransformer extends AbstractIteratorTransformer<FishStatJC
                 final String fileName = matcher.group(1);
                 final String fileExtension = linkElement.text().isEmpty() ? matcher.group(2) : linkElement.text();
 
-                final ResearchData download = new ResearchData(fileUrl, fileName);
-                download.setType(fileExtension);
-                downloads.add(download);
+                downloads.add(new ResearchData(fileUrl, fileName, fileExtension));
             }
         }
 
@@ -331,10 +331,7 @@ public class FishStatJTransformer extends AbstractIteratorTransformer<FishStatJC
                                               FishStatJSourceConstants.SITE_URL,
                                               sideBar.attr(FishStatJSourceConstants.HREF_ATTRIBUTE)
                                           );
-                final WebLink sideBarLink = new WebLink(sideBarUrl);
-                sideBarLink.setName(sideBar.text());
-                sideBarLink.setType(WebLinkType.Related);
-                weblinks.add(sideBarLink);
+                weblinks.add(new WebLink(sideBarUrl, sideBar.text(), WebLinkType.Related));
             }
         }
 
@@ -415,11 +412,11 @@ public class FishStatJTransformer extends AbstractIteratorTransformer<FishStatJC
             // check if the file contains the required text area
             if (subStringFrom != -1) {
                 final int subStringTo = text.indexOf(FishStatJFileConstants.RIGHTS_TEXT_EXCLUDED_SUFFIX, subStringFrom);
+                final String rightsText = text.substring(
+                                              subStringFrom + FishStatJFileConstants.RIGHTS_TEXT_EXCLUDED_PREFIX.length(),
+                                              subStringTo);
 
-                rightsList.add(new Rights(
-                                   text.substring(
-                                       subStringFrom + FishStatJFileConstants.RIGHTS_TEXT_EXCLUDED_PREFIX.length(),
-                                       subStringTo)));
+                rightsList.add(new Rights(rightsText, language));
             }
         }
 
@@ -437,35 +434,38 @@ public class FishStatJTransformer extends AbstractIteratorTransformer<FishStatJC
      */
     private Collection<Subject> getSubjectsFromDownloadedFiles(File unzippedFolder)
     {
-        final Set<Subject> subjectList = new HashSet<Subject>();
+        final Set<Subject> subjectSet = new HashSet<Subject>();
 
         final File[] csvFiles = unzippedFolder.listFiles(FishStatJFileConstants.CSV_FILE_FILTER);
 
-        for (int i = 0, len = csvFiles.length; i < len; i++) {
+        if (csvFiles != null) {
 
-            // calculate column shift
-            final int headerShift = csvFiles[i].getName().contains(FishStatJFileConstants.CSV_FILE_WITH_SHIFTED_HEADER) ? 1 : 0;
+            for (int i = 0, len = csvFiles.length; i < len; i++) {
 
-            // retrieve title row
-            final List<String> titleRow = CsvUtils.getRow(0, csvFiles[i], StandardCharsets.UTF_8);
+                // calculate column shift
+                final int headerShift = csvFiles[i].getName().contains(FishStatJFileConstants.CSV_FILE_WITH_SHIFTED_HEADER) ? 1 : 0;
 
-            if (titleRow != null) {
+                // retrieve title row
+                final List<String> titleRow = CsvUtils.getRow(0, csvFiles[i], StandardCharsets.UTF_8);
 
-                // retrieve interesting columns
-                for (String colTitle : FishStatJSourceConstants.VALID_SUBJECTS) {
-                    final int columnIndex = titleRow.indexOf(colTitle) + headerShift;
+                if (titleRow != null) {
 
-                    if (columnIndex != -1) {
-                        final List<String> column = CsvUtils.getColumn(columnIndex, csvFiles[i], StandardCharsets.UTF_8);
+                    // retrieve interesting columns
+                    for (String colTitle : FishStatJSourceConstants.VALID_SUBJECTS) {
+                        final int columnIndex = titleRow.indexOf(colTitle) + headerShift;
 
-                        if (column != null)
-                            column.forEach((String element) -> subjectList.add(new Subject(element)));
+                        if (columnIndex != -1) {
+                            final List<String> column = CsvUtils.getColumn(columnIndex, csvFiles[i], StandardCharsets.UTF_8);
+
+                            if (column != null)
+                                column.forEach((String element) -> subjectSet.add(new Subject(element)));
+                        }
                     }
                 }
             }
         }
 
-        return  subjectList;
+        return  subjectSet;
     }
 
 

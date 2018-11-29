@@ -26,6 +26,7 @@ import java.util.regex.Pattern;
 
 import de.gerdiproject.json.datacite.Contributor;
 import de.gerdiproject.json.datacite.enums.ContributorType;
+import de.gerdiproject.json.datacite.enums.DescriptionType;
 import de.gerdiproject.json.datacite.enums.NameType;
 import de.gerdiproject.json.datacite.nested.PersonName;
 
@@ -47,7 +48,7 @@ public class FishStatJSourceConstants
 
     public static final String SECTION_TITLE_CONTAINING_LINKS = "Available Formats & Information Products";
     public static final String SECTION_TITLE_CONTAINING_RIGHTS = "Data Security Access Rules";
-
+    public static final Object SECTION_TITLE_CONTAINING_SUBJECTS = "Typical Usage";
 
     public static final String MAIN_TITLE_SELECTION = "#head_title_instance";
     public static final String SUB_TITLE_SELECTION = "#head_title_class";
@@ -66,14 +67,9 @@ public class FishStatJSourceConstants
                                                               "a:contains(Coverage)",
                                                               "a:contains(Structure)",
                                                               "a:contains(Data Source)"));
+    public static final String DATASET_TITLE = "Dataset";
 
-    public static final List<String> VALID_DESCRIPTIONS = Collections.unmodifiableList(Arrays.asList(
-                                                              "Collection Overview",
-                                                              "Status",
-                                                              "Typical Usage",
-                                                              "Audience",
-                                                              "Data Security Access Rules",
-                                                              "Dataset Overview"));
+    public static final Map<String, DescriptionType> VALID_DESCRIPTION_MAP = createValidDescriptionMap();
 
     public static final List<String> VALID_SUBJECTS = Collections.unmodifiableList(Arrays.asList(
             "Name_en",
@@ -82,12 +78,11 @@ public class FishStatJSourceConstants
 
     public static final Map<String, Contributor> VALID_CONTRIBUTOR_MAP = createValidContributorMap();
 
-    public static final Pattern DOWNLOADABLE_FILE_PATTERN = Pattern.compile("(?:.+)/([^/]+)\\.(\\w+)$");
+    public static final Pattern DOWNLOADABLE_FILE_PATTERN = Pattern.compile("(?:.+)/([^/]+)\\.(zip)$");
     public static final String LINK_REGEX = "(?:javascript:new_window\\(')?(?:https?://www\\.fao\\.org)?([^']+)(?:'.+\\);)?";
     public static final String LINK_REGEX_REPLACE = "http://www.fao.org$1";
 
     public static final String HREF_ATTRIBUTE = "href";
-    public static final String PUBLICATION_TITLE = "Publication";
 
 
     public static final File DOWNLOADED_ZIP_FILE = new File("downloadedCollection.zip");
@@ -99,6 +94,20 @@ public class FishStatJSourceConstants
      */
     private FishStatJSourceConstants()
     {
+    }
+
+
+    /**
+     * @return
+     */
+    private static Map<String, DescriptionType> createValidDescriptionMap()
+    {
+        final Map<String, DescriptionType> map = new HashMap<>();
+        map.put("Collection Overview", DescriptionType.Abstract);
+        map.put("Status", DescriptionType.TechnicalInfo);
+        map.put("Audience", DescriptionType.Other);
+        map.put("Dataset Overview", DescriptionType.Abstract);
+        return map;
     }
 
 
