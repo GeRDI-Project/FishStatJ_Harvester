@@ -25,6 +25,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.regex.Matcher;
 
@@ -261,12 +262,12 @@ public class FishStatJTransformer extends AbstractIteratorTransformer<FishStatJC
         }
 
         // parse other related web links
-        for (String sectionTitle : sections.keySet()) {
-            if (!sectionTitle.equals(languageVo.getWebLinksSectionTitle())) {
-                final Elements infoLinks = sections.get(sectionTitle).select(FishStatJSourceConstants.LINKS_SELECTION);
+        for (Entry<String, Element> section : sections.entrySet()) {
+            if (!section.getKey().equals(languageVo.getWebLinksSectionTitle())) {
+                final Elements infoLinks = section.getValue().select(FishStatJSourceConstants.LINKS_SELECTION);
 
                 for (Element ele : infoLinks)
-                    weblinks.add(parseWebLink(ele, ""));
+                    weblinks.add(parseWebLink(ele, null));
             }
         }
 
@@ -619,10 +620,11 @@ public class FishStatJTransformer extends AbstractIteratorTransformer<FishStatJC
         String title = linkElement.text().isEmpty() ? alternativeTitle : linkElement.text();
 
         // remove the "Click here" part of the title, if applicable
-        title = title.replace(languageVo.getWebLinkTitleRegex(), FishStatJSourceConstants.CLICK_HERE_REPLACE);
+        if (title != null)
+            title = title.replace(languageVo.getWebLinkTitleRegex(), FishStatJSourceConstants.CLICK_HERE_REPLACE);
 
         // determine the type of the web link
-        final WebLinkType type = title.endsWith(FishStatJSourceConstants.GIF_EXTENSION)
+        final WebLinkType type = url.endsWith(FishStatJSourceConstants.GIF_EXTENSION)
                                  ? WebLinkType.ThumbnailURL
                                  : WebLinkType.Related;
 
