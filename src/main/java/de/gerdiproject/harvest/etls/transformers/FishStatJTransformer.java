@@ -35,9 +35,11 @@ import com.google.gson.Gson;
 
 import de.gerdiproject.harvest.etls.AbstractETL;
 import de.gerdiproject.harvest.etls.FishStatJETL;
+import de.gerdiproject.harvest.etls.FishStatJLanguageVO;
 import de.gerdiproject.harvest.etls.extractors.FishStatJCollectionVO;
 import de.gerdiproject.harvest.fishstatj.constants.FishStatJDataCiteConstants;
 import de.gerdiproject.harvest.fishstatj.constants.FishStatJFileConstants;
+import de.gerdiproject.harvest.fishstatj.constants.FishStatJLanguageConstants;
 import de.gerdiproject.harvest.fishstatj.constants.FishStatJSourceConstants;
 import de.gerdiproject.harvest.fishstatj.utils.CsvUtils;
 import de.gerdiproject.harvest.utils.data.DiskIO;
@@ -50,11 +52,14 @@ import de.gerdiproject.json.datacite.Rights;
 import de.gerdiproject.json.datacite.Subject;
 import de.gerdiproject.json.datacite.Title;
 import de.gerdiproject.json.datacite.abstr.AbstractDate;
+import de.gerdiproject.json.datacite.enums.ContributorType;
 import de.gerdiproject.json.datacite.enums.DateType;
+import de.gerdiproject.json.datacite.enums.NameType;
 import de.gerdiproject.json.datacite.enums.TitleType;
 import de.gerdiproject.json.datacite.extension.generic.ResearchData;
 import de.gerdiproject.json.datacite.extension.generic.WebLink;
 import de.gerdiproject.json.datacite.extension.generic.enums.WebLinkType;
+import de.gerdiproject.json.datacite.nested.PersonName;
 
 /**
  * This {@linkplain AbstractIteratorTransformer} implementation transforms FishStatJ collections to
@@ -66,14 +71,14 @@ public class FishStatJTransformer extends AbstractIteratorTransformer<FishStatJC
 {
     private final DiskIO diskReader = new DiskIO(new Gson(), StandardCharsets.UTF_8);
 
-    private String language;
+    private FishStatJLanguageVO languageVo;
 
 
     @Override
     public void init(AbstractETL<?, ?> etl)
     {
         super.init(etl);
-        this.language = ((FishStatJETL) etl).getLanguage();
+        this.languageVo = ((FishStatJETL) etl).getLanguageVO();
     }
 
 
@@ -81,7 +86,7 @@ public class FishStatJTransformer extends AbstractIteratorTransformer<FishStatJC
     protected DataCiteJson transformElement(FishStatJCollectionVO source) throws TransformerException
     {
         final DataCiteJson document = new DataCiteJson(source.getCollectionUrl());
-        document.setLanguage(language);
+        document.setLanguage(languageVo.getApiName());
 
         // add static metadata
         document.setRepositoryIdentifier(FishStatJDataCiteConstants.REPOSITORY_ID);
@@ -131,13 +136,13 @@ public class FishStatJTransformer extends AbstractIteratorTransformer<FishStatJC
         final String titleText = source.getCollectionPage()
                                  .selectFirst(FishStatJSourceConstants.MAIN_TITLE_SELECTION)
                                  .text();
-        titleList.add(new Title(titleText, null, language));
+        titleList.add(new Title(titleText, null, languageVo.getApiName()));
 
         // add category as sub-title
         final String categoryText = source.getCollectionPage()
                                     .selectFirst(FishStatJSourceConstants.SUB_TITLE_SELECTION)
                                     .text();
-        titleList.add(new Title(categoryText, TitleType.Subtitle, language));
+        titleList.add(new Title(categoryText, TitleType.Subtitle, languageVo.getApiName()));
 
         return titleList;
     }
@@ -157,14 +162,14 @@ public class FishStatJTransformer extends AbstractIteratorTransformer<FishStatJC
         final Map<String, Element> sections = getSections(source);
 
         // retrieve interesting section text
-        for (String sectionTitle : FishStatJSourceConstants.VALID_DESCRIPTION_MAP.keySet()) {
+        for (String sectionTitle : languageVo.getValidDescriptionMap().keySet()) {
             final Element sectionBody = sections.get(sectionTitle);
 
             if (sectionBody != null) {
                 final Description desc = new Description(
                     sectionBody.text().trim(),
-                    FishStatJSourceConstants.VALID_DESCRIPTION_MAP.get(sectionTitle),
-                    language);
+                    languageVo.getValidDescriptionMap().get(sectionTitle),
+                    languageVo.getApiName());
                 descriptionList.add(desc);
             }
         }
@@ -185,14 +190,14 @@ public class FishStatJTransformer extends AbstractIteratorTransformer<FishStatJC
         final List<Rights> rightsList = new LinkedList<>();
 
         // check if one of the sections can be parsed as Rights
-        final Element rightsSection = getSections(source).get(FishStatJSourceConstants.SECTION_TITLE_CONTAINING_RIGHTS);
+        final Element rightsSection = getSections(source).get(languageVo.getRightsSectionTitle());
 
         if (rightsSection != null) {
             final Element rightsLink = rightsSection.selectFirst(FishStatJSourceConstants.LINKS_SELECTION);
             final String rightsText = rightsSection.text().trim();
             final String rightsUrl = getUrlFromLink(rightsLink);
 
-            rightsList.add(new Rights(rightsText, language, rightsUrl));
+            rightsList.add(new Rights(rightsText, languageVo.getApiName(), rightsUrl));
         }
 
         return rightsList;
@@ -232,7 +237,7 @@ public class FishStatJTransformer extends AbstractIteratorTransformer<FishStatJC
         final Map<String, Element> sections = getSections(source);
 
         // parse dataset links
-        final Element datasetSection = sections.get(FishStatJSourceConstants.SECTION_TITLE_CONTAINING_LINKS);
+        final Element datasetSection = sections.get(languageVo.getWebLinksSectionTitle());
 
         if (datasetSection != null) {
             final Elements infoLinks = datasetSection.children().select(FishStatJSourceConstants.LINKS_AND_CAPTIONS_SELECTION);
@@ -246,7 +251,7 @@ public class FishStatJTransformer extends AbstractIteratorTransformer<FishStatJC
                     final WebLink link = parseWebLink(ele, titleAboveLink);
 
                     if (link != null) {
-                        if (titleAboveLink.equals(FishStatJSourceConstants.DATASET_TITLE))
+                        if (titleAboveLink.equals(languageVo.getDatasetSubTitle()))
                             link.setType(WebLinkType.SourceURL);
 
                         weblinks.add(link);
@@ -257,7 +262,7 @@ public class FishStatJTransformer extends AbstractIteratorTransformer<FishStatJC
 
         // parse other related web links
         for (String sectionTitle : sections.keySet()) {
-            if (!sectionTitle.equals(FishStatJSourceConstants.SECTION_TITLE_CONTAINING_LINKS)) {
+            if (!sectionTitle.equals(languageVo.getWebLinksSectionTitle())) {
                 final Elements infoLinks = sections.get(sectionTitle).select(FishStatJSourceConstants.LINKS_SELECTION);
 
                 for (Element ele : infoLinks)
@@ -281,7 +286,7 @@ public class FishStatJTransformer extends AbstractIteratorTransformer<FishStatJC
         // parse links from relevant section
         final List<ResearchData> downloads = new LinkedList<>();
         final Element linkSection = getSections(source).
-                                    get(FishStatJSourceConstants.SECTION_TITLE_CONTAINING_LINKS);
+                                    get(languageVo.getWebLinksSectionTitle());
 
         // if the section does not exist, there are no links
         if (linkSection == null)
@@ -319,7 +324,10 @@ public class FishStatJTransformer extends AbstractIteratorTransformer<FishStatJC
         final List<WebLink> weblinks = new LinkedList<>();
 
         // add side bar links
-        for (String sideBarSelection : FishStatJSourceConstants.SIDEBAR_SELECTIONS) {
+        for (String sideBarTitle : languageVo.getSidebarTitles()) {
+            final String sideBarSelection = String.format(
+                                                FishStatJSourceConstants.CONTAINS_TEXT_SELECTION,
+                                                sideBarTitle);
             final Element sideBar = source.getCollectionPage().selectFirst(sideBarSelection);
 
             if (sideBar != null) {
@@ -347,12 +355,43 @@ public class FishStatJTransformer extends AbstractIteratorTransformer<FishStatJC
         final List<Contributor> contributorList = new LinkedList<>();
 
         if (source.getContactsPage() != null) {
-            final Elements contactElements = source.getContactsPage().select(FishStatJSourceConstants.CONTACT_SELECTION);
+            final Elements contactElements = source.getContactsPage().select(FishStatJSourceConstants.CONTACTS_AND_MAILS_SELECTION);
+
+            String fullName = null;
 
             for (Element item : contactElements) {
-                final String contributorName = item.text().trim();
-                final Contributor contributor = FishStatJSourceConstants.VALID_CONTRIBUTOR_MAP.get(contributorName);
-                contributorList.add(contributor);
+
+                // if the element is a div, it can be the name of the upcoming mailto link
+                if (item.tagName().equals(FishStatJSourceConstants.DIV))
+                    fullName = item.text().trim();
+
+                // if the element is a mailto-link, we know the previous div is the contact's name
+                else if (fullName != null) {
+
+                    // the contact is an organisation
+                    if (fullName.matches(FishStatJSourceConstants.ORGANISATION_NAME_REGEX)) {
+                        contributorList.add(new Contributor(
+                                                new PersonName(fullName, NameType.Organisational),
+                                                ContributorType.ContactPerson));
+                    }
+                    // the contatct is a person
+                    else {
+                        // retrieve first- and last name and create a contact
+                        final Matcher nameMatcher = FishStatJSourceConstants.PERSON_NAME_PATTERN.matcher(fullName);
+
+                        if (nameMatcher.find()) {
+                            final String firstName = nameMatcher.group(1) != null ? nameMatcher.group(1) : nameMatcher.group(4);
+                            final String lastName = nameMatcher.group(2) != null ? nameMatcher.group(2) : nameMatcher.group(3);
+
+                            final Contributor contributor = new Contributor(
+                                new PersonName(fullName, NameType.Personal),
+                                ContributorType.ContactPerson);
+                            contributor.setGivenName(firstName);
+                            contributor.setFamilyName(lastName);
+                            contributorList.add(contributor);
+                        }
+                    }
+                }
             }
         }
 
@@ -371,14 +410,13 @@ public class FishStatJTransformer extends AbstractIteratorTransformer<FishStatJC
     {
         final List<Subject> subjectList = new LinkedList<Subject>();
 
-        final Element subjectSection = getSections(source).
-                                       get(FishStatJSourceConstants.SECTION_TITLE_CONTAINING_SUBJECTS);
+        final Element subjectSection = getSections(source).get(languageVo.getSubjectsSectionTitle());
 
         if (subjectSection != null) {
             final String[] usages = subjectSection.text().split(", ");
 
             for (int i = 0, len = usages.length; i < len; i++)
-                subjectList.add(new Subject(usages[i], language));
+                subjectList.add(new Subject(usages[i], languageVo.getApiName()));
         }
 
         return subjectList;
@@ -412,7 +450,8 @@ public class FishStatJTransformer extends AbstractIteratorTransformer<FishStatJC
                                               subStringFrom + FishStatJFileConstants.RIGHTS_TEXT_EXCLUDED_PREFIX.length(),
                                               subStringTo);
 
-                rightsList.add(new Rights(rightsText, language));
+                // this file is always in English
+                rightsList.add(new Rights(rightsText, FishStatJLanguageConstants.ENGLISH_API_NAME));
             }
         }
 
@@ -568,7 +607,7 @@ public class FishStatJTransformer extends AbstractIteratorTransformer<FishStatJC
      *
      * @return a {@linkplain WebLink} or null, if the element is a download link
      */
-    private static WebLink parseWebLink(Element linkElement, String alternativeTitle)
+    private WebLink parseWebLink(Element linkElement, String alternativeTitle)
     {
         final String url = getUrlFromLink(linkElement);
 
@@ -580,7 +619,7 @@ public class FishStatJTransformer extends AbstractIteratorTransformer<FishStatJC
         String title = linkElement.text().isEmpty() ? alternativeTitle : linkElement.text();
 
         // remove the "Click here" part of the title, if applicable
-        title = title.replace(FishStatJSourceConstants.CLICK_HERE_REGEX, FishStatJSourceConstants.CLICK_HERE_REPLACE);
+        title = title.replace(languageVo.getWebLinkTitleRegex(), FishStatJSourceConstants.CLICK_HERE_REPLACE);
 
         // determine the type of the web link
         final WebLinkType type = title.endsWith(FishStatJSourceConstants.GIF_EXTENSION)

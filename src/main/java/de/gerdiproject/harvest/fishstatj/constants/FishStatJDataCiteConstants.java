@@ -28,6 +28,8 @@ import de.gerdiproject.json.datacite.extension.generic.WebLink;
 import de.gerdiproject.json.datacite.extension.generic.constants.ResearchDisciplineConstants;
 import de.gerdiproject.json.datacite.extension.generic.enums.WebLinkType;
 import de.gerdiproject.json.datacite.nested.PersonName;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 
 /**
  * This class contains FishStatJ related constants that are used to enrich
@@ -35,6 +37,7 @@ import de.gerdiproject.json.datacite.nested.PersonName;
  *
  * @author Robin Weiss
  */
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class FishStatJDataCiteConstants
 {
     public static final String REPOSITORY_ID = "FishStatJ";
@@ -47,14 +50,6 @@ public class FishStatJDataCiteConstants
     public static final WebLink LOGO_LINK = createLogoLink();
 
     public static final String DATE_INFORMATION = "Version %s - %s";
-
-
-    /**
-     * Private constructor, because only constants are provided.
-     */
-    private FishStatJDataCiteConstants()
-    {
-    }
 
 
     /**

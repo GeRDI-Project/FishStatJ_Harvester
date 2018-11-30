@@ -31,6 +31,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import de.gerdiproject.harvest.etls.AbstractETL;
+import de.gerdiproject.harvest.etls.ETLPreconditionException;
+import de.gerdiproject.harvest.etls.FishStatJETL;
+import de.gerdiproject.harvest.etls.FishStatJLanguageVO;
 import de.gerdiproject.harvest.fishstatj.constants.FishStatJFileConstants;
 import de.gerdiproject.harvest.fishstatj.constants.FishStatJSourceConstants;
 import de.gerdiproject.harvest.utils.data.HttpRequester;
@@ -50,6 +53,7 @@ public class FishStatJExtractor extends AbstractIteratorExtractor<FishStatJColle
 
     private final HttpRequester httpRequester = new HttpRequester();
 
+    private FishStatJLanguageVO languageVo;
     private Iterator<Element> sourceIterator;
     private String version = null;
     private int size = -1;
@@ -59,10 +63,16 @@ public class FishStatJExtractor extends AbstractIteratorExtractor<FishStatJColle
     public void init(AbstractETL<?, ?> etl)
     {
         super.init(etl);
-        httpRequester.setCharset(etl.getCharset());
+        this.languageVo = ((FishStatJETL) etl).getLanguageVO();
+        this.httpRequester.setCharset(etl.getCharset());
 
-        final Document baseWebsite = httpRequester.getHtmlFromUrl(FishStatJSourceConstants.BASE_URL);
-        final Elements fishStatJSources = baseWebsite.select(FishStatJSourceConstants.MAIN_PAGE_SELECTION);
+        final String mainUrl = String.format(FishStatJSourceConstants.MAIN_PAGE_URL, languageVo.getApiName());
+        final Document baseWebsite = httpRequester.getHtmlFromUrl(mainUrl);
+
+        if (baseWebsite == null)
+            throw new ETLPreconditionException(FishStatJSourceConstants.FISHSTAT_TIMEOUT_ERROR);
+
+        final Elements fishStatJSources = baseWebsite.select(FishStatJSourceConstants.MAIN_PAGE_LINKS_SELECTION);
 
         this.size = fishStatJSources.size();
 
@@ -115,7 +125,7 @@ public class FishStatJExtractor extends AbstractIteratorExtractor<FishStatJColle
             final String url = nextSource.attr(FishStatJSourceConstants.HREF_ATTRIBUTE);
             final Document collectionPage = httpRequester.getHtmlFromUrl(url);
 
-            if (collectionPage.hasText())
+            if (collectionPage != null && collectionPage.hasText())
                 return new FishStatJCollectionVO(
                            url,
                            collectionPage,
@@ -136,7 +146,10 @@ public class FishStatJExtractor extends AbstractIteratorExtractor<FishStatJColle
         private Document getContactsPage(Document collectionPage)
         {
             // find the "Contact" element on the web page
-            final Element contactsLink = collectionPage.select(FishStatJSourceConstants.ALL_CONTACTS_SELECTION).first();
+            final String contactsSelection = String.format(
+                                                 FishStatJSourceConstants.CONTAINS_TEXT_SELECTION,
+                                                 languageVo.getContactsTabTitle());
+            final Element contactsLink = collectionPage.selectFirst(contactsSelection);
 
             if (contactsLink == null)
                 return null;
@@ -173,14 +186,14 @@ public class FishStatJExtractor extends AbstractIteratorExtractor<FishStatJColle
                 return null;
 
             // download zip file
-            final boolean isDownloaded = downloadZipFromUrl(zipUrl, FishStatJSourceConstants.DOWNLOADED_ZIP_FILE);
+            final boolean isDownloaded = downloadZipFromUrl(zipUrl, FishStatJFileConstants.DOWNLOADED_ZIP_FILE);
 
             if (!isDownloaded)
                 return null;
 
             // unzip file
-            final File unzipFolder = new File(FishStatJSourceConstants.UNZIP_FOLDER + zipLinkElement.text().replaceAll("\\W", ""));
-            final boolean isUnzipped = unZip(FishStatJSourceConstants.DOWNLOADED_ZIP_FILE, unzipFolder);
+            final File unzipFolder = new File(FishStatJFileConstants.UNZIP_FOLDER + zipLinkElement.text().replaceAll("\\W", ""));
+            final boolean isUnzipped = unZip(FishStatJFileConstants.DOWNLOADED_ZIP_FILE, unzipFolder);
 
             if (!isUnzipped)
                 return null;

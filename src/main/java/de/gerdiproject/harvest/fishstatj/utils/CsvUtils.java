@@ -29,24 +29,20 @@ import org.slf4j.LoggerFactory;
 
 import com.opencsv.CSVReader;
 
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
+
 /**
  * This utility class offers static methods for manipulating CSV files.
  *
  * @author Robin Weiss
  */
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class CsvUtils
 {
     private static final Logger LOGGER = LoggerFactory.getLogger(CsvUtils.class);
     private static final String CSV_GET_COLUMN_ERROR = "Could not retrieve column %d from %s!";
     private static final String CSV_GET_ROW_ERROR = "Could not retrieve row %d from %s!";
-
-
-    /**
-     * Private constructor, because only static methods are provided.
-     */
-    private CsvUtils()
-    {
-    }
 
 
     /**

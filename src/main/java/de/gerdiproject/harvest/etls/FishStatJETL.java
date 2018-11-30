@@ -17,9 +17,11 @@ package de.gerdiproject.harvest.etls;
 
 import de.gerdiproject.harvest.config.Configuration;
 import de.gerdiproject.harvest.config.parameters.StringParameter;
-import de.gerdiproject.harvest.etls.extractors.FishStatJExtractor;
+import de.gerdiproject.harvest.config.parameters.constants.ParameterMappingFunctions;
 import de.gerdiproject.harvest.etls.extractors.FishStatJCollectionVO;
+import de.gerdiproject.harvest.etls.extractors.FishStatJExtractor;
 import de.gerdiproject.harvest.etls.transformers.FishStatJTransformer;
+import de.gerdiproject.harvest.fishstatj.constants.FishStatJLanguageConstants;
 import de.gerdiproject.harvest.fishstatj.constants.FishStatJParameterConstants;
 import de.gerdiproject.json.datacite.DataCiteJson;
 
@@ -53,17 +55,18 @@ public class FishStatJETL extends StaticIteratorETL<FishStatJCollectionVO, DataC
                                  new StringParameter(
                                      FishStatJParameterConstants.LANGUAGE_KEY,
                                      getName(),
-                                     FishStatJParameterConstants.LANGUAGE_DEFAULT));
+                                     FishStatJParameterConstants.LANGUAGE_DEFAULT,
+                                     ParameterMappingFunctions.createStringListMapper(FishStatJLanguageConstants.LANGUAGE_MAP.keySet())));
     }
 
 
     /**
-     * Retrieves the language in which the documents are to be harvested.
+     * Retrieves a value object of the language in which the documents are to be harvested.
      *
-     * @return the language in which the documents are to be harvested
+     * @return a value object of the language in which the documents are to be harvested
      */
-    public String getLanguage()
+    public FishStatJLanguageVO getLanguageVO()
     {
-        return languageParam.getValue();
+        return FishStatJLanguageConstants.LANGUAGE_MAP.get(languageParam.getValue());
     }
 }

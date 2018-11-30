@@ -15,21 +15,17 @@
  */
 package de.gerdiproject.harvest.fishstatj.constants;
 
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
+
 /**
  * This class contatins constants regarding configurable parameters.
  *
  * @author Bohdan Tkachuk, Robin Weiss
  */
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class FishStatJParameterConstants
 {
-
     public static final String LANGUAGE_KEY = "language";
     public static final String LANGUAGE_DEFAULT = "en";
-
-    /**
-     * Private constructor, because only constants are provided.
-     */
-    private FishStatJParameterConstants()
-    {
-    }
 }

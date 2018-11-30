@@ -22,10 +22,15 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
+
 /**
- * @author Robin Weiss
+ * This class contains constants regarding the download and parsing of FishStatJ datasets.
  *
+ * @author Robin Weiss
  */
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class FishStatJFileConstants
 {
     public static final String RIGHTS_TEXT_EXCLUDED_PREFIX = "COPYRIGHT & DISCLAIMER CLAUSES\n\n";
@@ -43,6 +48,9 @@ public class FishStatJFileConstants
     public static final List<String> LIST_OF_SUBJECTS = Collections.unmodifiableList(Arrays.asList("Name_en", "Scientific_Name"));
     public static final String CSV_FILE_WITH_SHIFTED_HEADER = "COUNTRY";
 
+    public static final File DOWNLOADED_ZIP_FILE = new File("downloadedCollection.zip");
+    public static final String UNZIP_FOLDER = "unzipped/";
+
     public static final FilenameFilter CSV_FILE_FILTER = new FilenameFilter()
     {
         @Override
@@ -50,13 +58,4 @@ public class FishStatJFileConstants
             return name.endsWith(".csv");
         }
     };
-
-
-    /**
-     * Private constructor, because only constants are provided.
-     */
-    private FishStatJFileConstants()
-    {
-
-    }
 }
