@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 /**
- * This package contains classes and packages that are related to FishStatJ source data.
+ * This package contains utility classes for processing FishStatJ data.
  *
  * @author Bohdan Tkachuk
  */
-package de.gerdiproject.harvest.fishstatj;
+package de.gerdiproject.harvest.fishstatj.utils;
