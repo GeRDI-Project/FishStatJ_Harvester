@@ -234,7 +234,7 @@ public class FishStatJExtractor extends AbstractIteratorExtractor<FishStatJColle
          * Attempts to extract the content of a zip file to a specified folder.
          *
          * @param zipFile the zip file that is to be extracted
-         * @param unzipFolder the folder to which the files are extracted
+         * @param unzipFolder the folder to which the files are to be extracted to
          *
          * @return true if the extraction was successful
          */

@@ -21,7 +21,7 @@ import java.io.File;
 import org.jsoup.nodes.Document;
 
 import de.gerdiproject.json.datacite.DataCiteJson;
-import lombok.Data;
+import lombok.Value;
 
 /**
  * This value object contains extracted FishStatJ data which can be used
@@ -29,11 +29,11 @@ import lombok.Data;
  *
  * @author Robin Weiss
  */
-@Data
+@Value
 public class FishStatJCollectionVO
 {
     private final String collectionUrl;
     private final Document collectionPage;
     private final Document contactsPage;
-    private final File downloadedFiles;
+    private final File downloadFolder;
 }

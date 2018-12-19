@@ -107,7 +107,7 @@ public class FishStatJTransformer extends AbstractIteratorTransformer<FishStatJC
         document.addSubjects(getSubjects(source));
 
         // retrieve metadata from downloaded zip archive
-        final File downloadFolder = source.getDownloadedFiles();
+        final File downloadFolder = source.getDownloadFolder();
 
         if (downloadFolder != null) {
             document.addRights(getRightsFromDownloadedFiles(downloadFolder));
@@ -381,6 +381,7 @@ public class FishStatJTransformer extends AbstractIteratorTransformer<FishStatJC
                         final Matcher nameMatcher = FishStatJSourceConstants.PERSON_NAME_PATTERN.matcher(fullName);
 
                         if (nameMatcher.find()) {
+                            // either groups 1&2 are matching or groups 3&4, two distinct notations of names, both of which are handled here
                             final String firstName = nameMatcher.group(1) != null ? nameMatcher.group(1) : nameMatcher.group(4);
                             final String lastName = nameMatcher.group(2) != null ? nameMatcher.group(2) : nameMatcher.group(3);
 
