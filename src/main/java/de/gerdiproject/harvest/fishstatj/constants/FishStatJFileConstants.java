@@ -39,7 +39,7 @@ public class FishStatJFileConstants
     public static final String DATES_TEXT_EXCLUDED_PREFIX = "Version History:\\n";
     public static final String DATES_TEXT_EXCLUDED_SUFFIX = "\\n\\n© FAO";
 
-    public static final String UNZIP_ERROR = "Could not unzip file: %s";
+    public static final String UNZIP_ERROR = "Could not unzip file stream from: %s";
     public static final String DOWNLOAD_ERROR = "Could not download file: %s";
 
     public static final String README_FILE_NAME = "Notes.txt";
@@ -50,6 +50,8 @@ public class FishStatJFileConstants
 
     public static final File DOWNLOADED_ZIP_FILE = new File("downloadedCollection.zip");
     public static final String UNZIP_FOLDER = "unzipped/";
+
+    public static final int ZIP_EXTRACT_BUFFER_SIZE = 2048;
 
     public static final FilenameFilter CSV_FILE_FILTER = new FilenameFilter()
     {

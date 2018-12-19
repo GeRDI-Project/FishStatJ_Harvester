@@ -16,13 +16,17 @@
  */
 package de.gerdiproject.harvest.etls.extractors;
 
+import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.net.MalformedURLException;
 import java.net.URL;
-import java.nio.channels.Channels;
-import java.nio.channels.ReadableByteChannel;
 import java.util.Iterator;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipException;
+import java.util.zip.ZipInputStream;
 
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -38,8 +42,6 @@ import de.gerdiproject.harvest.fishstatj.constants.FishStatJFileConstants;
 import de.gerdiproject.harvest.fishstatj.constants.FishStatJSourceConstants;
 import de.gerdiproject.harvest.utils.data.HttpRequester;
 import de.gerdiproject.harvest.utils.file.FileUtils;
-import net.lingala.zip4j.core.ZipFile;
-import net.lingala.zip4j.exception.ZipException;
 
 /**
  * This {@linkplain AbstractIteratorExtractor} implementation retrieves FishStatJ collections
@@ -118,6 +120,7 @@ public class FishStatJExtractor extends AbstractIteratorExtractor<FishStatJColle
             return sourceIterator.hasNext();
         }
 
+
         @Override
         public FishStatJCollectionVO next()
         {
@@ -185,15 +188,9 @@ public class FishStatJExtractor extends AbstractIteratorExtractor<FishStatJColle
             if (zipUrl == null)
                 return null;
 
-            // download zip file
-            final boolean isDownloaded = downloadZipFromUrl(zipUrl, FishStatJFileConstants.DOWNLOADED_ZIP_FILE);
-
-            if (!isDownloaded)
-                return null;
-
             // unzip file
             final File unzipFolder = new File(FishStatJFileConstants.UNZIP_FOLDER + zipLinkElement.text().replaceAll("\\W", ""));
-            final boolean isUnzipped = unZip(FishStatJFileConstants.DOWNLOADED_ZIP_FILE, unzipFolder);
+            final boolean isUnzipped = unZipFileFromUrl(zipUrl, unzipFolder);
 
             if (!isUnzipped)
                 return null;
@@ -201,57 +198,67 @@ public class FishStatJExtractor extends AbstractIteratorExtractor<FishStatJColle
             return unzipFolder;
         }
 
-        /**
-         * Downloads a zip file to a specified path.
-         *
-         * @param downloadLink the URL that points to a zip file
-         * @param destination a local zip file path
-         *
-         * @return true if the download was successful
-         */
-        private boolean downloadZipFromUrl(String downloadLink, File destination)
-        {
-            FileUtils.deleteFile(destination);
-
-            try {
-                final URL downloadUrl = new URL(downloadLink);
-
-                try
-                    (FileOutputStream fileOutputStream = new FileOutputStream(destination)) {
-                    final ReadableByteChannel readableByteChannel = Channels.newChannel(downloadUrl.openStream());
-                    fileOutputStream.getChannel().transferFrom(readableByteChannel, 0, Long.MAX_VALUE);
-                }
-            } catch (IOException e) {
-                LOGGER.error(String.format(FishStatJFileConstants.DOWNLOAD_ERROR, downloadLink), e);
-                return false;
-            }
-
-            return true;
-        }
-
 
         /**
-         * Attempts to extract the content of a zip file to a specified folder.
+         * Reads a file stream from a URL that points to a zip file and extracts the content
+         * to a specified folder.
          *
-         * @param zipFile the zip file that is to be extracted
-         * @param unzipFolder the folder to which the files are to be extracted to
+         * @param zipUrl a URL that points to a zip file
+         * @param unzipFolder the folder to which the zip is to be extracted to
          *
-         * @return true if the extraction was successful
+         * @return true if the zip was extracted successfully
          */
-        private boolean unZip(File zipFile, File unzipFolder)
+        private boolean unZipFileFromUrl(String zipUrl, File unzipFolder)
         {
             // cleanup left over files
             FileUtils.deleteFile(unzipFolder);
             FileUtils.createDirectories(unzipFolder);
 
+            final URL downloadUrl;
+
             try {
-                new ZipFile(zipFile).extractAll(unzipFolder.toString());
-                return true;
-            } catch (ZipException e) {
-                LOGGER.error(String.format(FishStatJFileConstants.UNZIP_ERROR, zipFile.toString()), e);
-                FileUtils.deleteFile(unzipFolder);
+                downloadUrl = new URL(zipUrl);
+
+            } catch (MalformedURLException e) {
+                LOGGER.error(String.format(FishStatJFileConstants.DOWNLOAD_ERROR, zipUrl), e);
                 return false;
             }
+
+            try
+                (InputStream urlInputStream = downloadUrl.openStream();
+                 ZipInputStream zipStream = new ZipInputStream(urlInputStream)) {
+
+                // iterate through the files of the zip input stream
+                ZipEntry entry;
+
+                while ((entry = zipStream.getNextEntry()) != null) {
+
+                    // open streams for writing files to disk
+                    try
+                        (FileOutputStream fileOut = new FileOutputStream(new File(unzipFolder, entry.getName()));
+                         BufferedOutputStream bufferedFileOut = new BufferedOutputStream(fileOut, FishStatJFileConstants.ZIP_EXTRACT_BUFFER_SIZE)) {
+
+                        // write the file from the stream to disk
+                        int amountOfReadBytes;
+                        final byte[] fileOutBuffer = new byte[FishStatJFileConstants.ZIP_EXTRACT_BUFFER_SIZE];
+
+                        while ((amountOfReadBytes = zipStream.read(fileOutBuffer, 0, fileOutBuffer.length)) != -1)
+                            bufferedFileOut.write(fileOutBuffer, 0, amountOfReadBytes);
+
+                        bufferedFileOut.flush();
+                    }
+                }
+
+                return true;
+
+            } catch (ZipException e) {
+                LOGGER.error(String.format(FishStatJFileConstants.UNZIP_ERROR, zipUrl), e);
+
+            } catch (IOException e) {
+                LOGGER.error(String.format(FishStatJFileConstants.DOWNLOAD_ERROR, zipUrl), e);
+            }
+
+            return false;
         }
     }
 }
