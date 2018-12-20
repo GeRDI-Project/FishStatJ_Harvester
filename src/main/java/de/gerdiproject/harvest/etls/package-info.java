@@ -13,9 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 /**
- * This package contains classes and packages that are related to FishStatJ JSON responses.
+ * This package contains classes and packages that are related to the {@linkplain de.gerdiproject.harvest.etls.FishStatJETL} and its sub-classes.
  *
  * @author Bohdan Tkachuk
  */
-package de.gerdiproject.harvest.fishstatj.json;
+package de.gerdiproject.harvest.etls;

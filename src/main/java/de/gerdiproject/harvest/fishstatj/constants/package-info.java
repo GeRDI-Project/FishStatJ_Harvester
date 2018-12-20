@@ -14,8 +14,7 @@
  * limitations under the License.
  */
 /**
- * This package contains static classes of constants concerning
- * the FishStatJ source data.
+ * This package contains constants concerning the FishStatJ source data.
  *
  * @author Bohdan Tkachuk
  */
