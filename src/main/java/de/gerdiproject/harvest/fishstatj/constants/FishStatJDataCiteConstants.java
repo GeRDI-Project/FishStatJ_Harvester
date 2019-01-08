@@ -59,7 +59,7 @@ public class FishStatJDataCiteConstants
      */
     private static WebLink createLogoLink()
     {
-        final String faoLogoUrl = "http://www.fao.org/figis/website/assets/images/templates/shared/fao_logo.gif";
+        final String faoLogoUrl = "http://www.fao.org/figis/servlet/IRS?iid=38239";
         final WebLink logoLink = new WebLink(faoLogoUrl);
         logoLink.setType(WebLinkType.ProviderLogoURL);
         return logoLink;
