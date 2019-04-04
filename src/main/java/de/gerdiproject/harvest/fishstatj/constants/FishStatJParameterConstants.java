@@ -13,9 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package de.gerdiproject.harvest.fishstatj.constants;
+
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
+
 /**
- * This package contains classes and packages that are related to the {@linkplain de.gerdiproject.harvest.harvester.FishStatJHarvester} and its sub-classes.
+ * This class contatins constants regarding configurable parameters.
  *
- * @author Bohdan Tkachuk
+ * @author Bohdan Tkachuk, Robin Weiss
  */
-package de.gerdiproject.harvest.harvester;
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
+public class FishStatJParameterConstants
+{
+    public static final String LANGUAGE_KEY = "language";
+    public static final String LANGUAGE_DEFAULT = "en";
+}
