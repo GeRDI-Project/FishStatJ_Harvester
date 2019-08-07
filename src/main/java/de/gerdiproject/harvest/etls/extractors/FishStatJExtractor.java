@@ -261,4 +261,12 @@ public class FishStatJExtractor extends AbstractIteratorExtractor<FishStatJColle
             return false;
         }
     }
+
+
+    @Override
+    public void clear()
+    {
+        // nothing to clean up
+        
+    }
 }

@@ -78,7 +78,6 @@ public class FishStatJTransformer extends AbstractIteratorTransformer<FishStatJC
     @Override
     public void init(AbstractETL<?, ?> etl)
     {
-        super.init(etl);
         this.languageVo = ((FishStatJETL) etl).getLanguageVO();
     }
 
@@ -630,5 +629,12 @@ public class FishStatJTransformer extends AbstractIteratorTransformer<FishStatJC
                                  : WebLinkType.Related;
 
         return new WebLink(url, title, type);
+    }
+
+
+    @Override
+    public void clear()
+    {
+        // nothing to clean up
     }
 }

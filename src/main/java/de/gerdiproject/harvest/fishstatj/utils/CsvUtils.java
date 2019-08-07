@@ -15,10 +15,9 @@
  */
 package de.gerdiproject.harvest.fishstatj.utils;
 
+import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.LinkedList;
@@ -29,6 +28,7 @@ import org.slf4j.LoggerFactory;
 
 import com.opencsv.CSVReader;
 
+import de.gerdiproject.harvest.utils.file.FileUtils;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
@@ -57,7 +57,8 @@ public class CsvUtils
     public static List<String> getRow(int rowIndex, File csvFile, Charset charset)
     {
         try
-            (CSVReader reader = new CSVReader(new InputStreamReader(new FileInputStream(csvFile), charset))) {
+            (BufferedReader fileReader = FileUtils.getReader(csvFile, charset);
+             CSVReader reader = new CSVReader(fileReader)) {
             reader.skip(rowIndex);
             return Arrays.asList(reader.readNext());
 
@@ -82,7 +83,8 @@ public class CsvUtils
         final List<String> column = new LinkedList<>();
 
         try
-            (CSVReader reader = new CSVReader(new InputStreamReader(new FileInputStream(csvFile), charset))) {
+            (BufferedReader fileReader = FileUtils.getReader(csvFile, charset);
+             CSVReader reader = new CSVReader(fileReader)) {
             String [] row;
 
             while ((row = reader.readNext()) != null)
