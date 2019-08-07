@@ -18,11 +18,12 @@ package de.gerdiproject.harvest.etls.extractors;
 
 import java.io.BufferedOutputStream;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.file.Files;
 import java.util.Iterator;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipException;
@@ -51,18 +52,18 @@ import de.gerdiproject.harvest.utils.file.FileUtils;
  */
 public class FishStatJExtractor extends AbstractIteratorExtractor<FishStatJCollectionVO>
 {
-    private static final Logger LOGGER = LoggerFactory.getLogger(FishStatJExtractor.class);
+    protected static final Logger LOGGER = LoggerFactory.getLogger(FishStatJExtractor.class);
 
-    private final HttpRequester httpRequester = new HttpRequester();
+    protected final HttpRequester httpRequester = new HttpRequester();
 
-    private FishStatJLanguageVO languageVo;
-    private Iterator<Element> sourceIterator;
-    private String version = null;
-    private int size = -1;
+    protected FishStatJLanguageVO languageVo;
+    protected Iterator<Element> sourceIterator;
+    private String version;
+    private int fishStatJPageCount = -1;
 
 
     @Override
-    public void init(AbstractETL<?, ?> etl)
+    public void init(final AbstractETL<?, ?> etl)
     {
         super.init(etl);
         this.languageVo = ((FishStatJETL) etl).getLanguageVO();
@@ -76,7 +77,7 @@ public class FishStatJExtractor extends AbstractIteratorExtractor<FishStatJColle
 
         final Elements fishStatJSources = baseWebsite.select(FishStatJSourceConstants.MAIN_PAGE_LINKS_SELECTION);
 
-        this.size = fishStatJSources.size();
+        this.fishStatJPageCount = fishStatJSources.size();
 
         // TODO replace with something better
         this.version = String.valueOf(fishStatJSources.size());
@@ -95,7 +96,7 @@ public class FishStatJExtractor extends AbstractIteratorExtractor<FishStatJColle
     @Override
     public int size()
     {
-        return size;
+        return fishStatJPageCount;
     }
 
 
@@ -146,7 +147,7 @@ public class FishStatJExtractor extends AbstractIteratorExtractor<FishStatJColle
          *
          * @return a web page concerning contact information of a collection
          */
-        private Document getContactsPage(Document collectionPage)
+        private Document getContactsPage(final Document collectionPage)
         {
             // find the "Contact" element on the web page
             final String contactsSelection = String.format(
@@ -174,7 +175,7 @@ public class FishStatJExtractor extends AbstractIteratorExtractor<FishStatJColle
          * @return a local directory containing the deflated zip archive, or null if there
          *          were problems downloading or deflating the archive
          */
-        private File downloadAndUnzipCollection(Document collectionPage)
+        private File downloadAndUnzipCollection(final Document collectionPage)
         {
             // look for a link-element for downloading a zip-file
             final Element zipLinkElement = collectionPage.selectFirst(FishStatJSourceConstants.ZIP_LINKS_SELECTION);
@@ -208,7 +209,7 @@ public class FishStatJExtractor extends AbstractIteratorExtractor<FishStatJColle
          *
          * @return true if the zip was extracted successfully
          */
-        private boolean unZipFileFromUrl(String zipUrl, File unzipFolder)
+        private boolean unZipFileFromUrl(final String zipUrl, final File unzipFolder)
         {
             // cleanup left over files
             FileUtils.deleteFile(unzipFolder);
@@ -219,7 +220,7 @@ public class FishStatJExtractor extends AbstractIteratorExtractor<FishStatJColle
             try {
                 downloadUrl = new URL(zipUrl);
 
-            } catch (MalformedURLException e) {
+            } catch (final MalformedURLException e) {
                 LOGGER.error(String.format(FishStatJFileConstants.DOWNLOAD_ERROR, zipUrl), e);
                 return false;
             }
@@ -229,21 +230,28 @@ public class FishStatJExtractor extends AbstractIteratorExtractor<FishStatJColle
                  ZipInputStream zipStream = new ZipInputStream(urlInputStream)) {
 
                 // iterate through the files of the zip input stream
-                ZipEntry entry;
+                while (true) {
+                    final ZipEntry entry = zipStream.getNextEntry();
 
-                while ((entry = zipStream.getNextEntry()) != null) {
+                    if (entry == null)
+                        break;
 
                     // open streams for writing files to disk
                     try
-                        (FileOutputStream fileOut = new FileOutputStream(new File(unzipFolder, entry.getName()));
+                        (OutputStream fileOut = Files.newOutputStream(new File(unzipFolder, entry.getName()).toPath());
                          BufferedOutputStream bufferedFileOut = new BufferedOutputStream(fileOut, FishStatJFileConstants.ZIP_EXTRACT_BUFFER_SIZE)) {
 
                         // write the file from the stream to disk
-                        int amountOfReadBytes;
                         final byte[] fileOutBuffer = new byte[FishStatJFileConstants.ZIP_EXTRACT_BUFFER_SIZE];
 
-                        while ((amountOfReadBytes = zipStream.read(fileOutBuffer, 0, fileOutBuffer.length)) != -1)
-                            bufferedFileOut.write(fileOutBuffer, 0, amountOfReadBytes);
+                        while (true) {
+                            final int readByteCount = zipStream.read(fileOutBuffer, 0, fileOutBuffer.length);
+
+                            if (readByteCount == -1)
+                                break;
+                            else
+                                bufferedFileOut.write(fileOutBuffer, 0, readByteCount);
+                        }
 
                         bufferedFileOut.flush();
                     }
@@ -251,10 +259,10 @@ public class FishStatJExtractor extends AbstractIteratorExtractor<FishStatJColle
 
                 return true;
 
-            } catch (ZipException e) {
+            } catch (final ZipException e) {
                 LOGGER.error(String.format(FishStatJFileConstants.UNZIP_ERROR, zipUrl), e);
 
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 LOGGER.error(String.format(FishStatJFileConstants.DOWNLOAD_ERROR, zipUrl), e);
             }
 
@@ -267,6 +275,6 @@ public class FishStatJExtractor extends AbstractIteratorExtractor<FishStatJColle
     public void clear()
     {
         // nothing to clean up
-        
+
     }
 }

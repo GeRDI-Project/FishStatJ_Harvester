@@ -54,7 +54,7 @@ public class CsvUtils
      *
      * @return the row with the specified index, or null if it could not be retrieved
      */
-    public static List<String> getRow(int rowIndex, File csvFile, Charset charset)
+    public static List<String> getRow(final int rowIndex, final File csvFile, final Charset charset)
     {
         try
             (BufferedReader fileReader = FileUtils.getReader(csvFile, charset);
@@ -62,7 +62,7 @@ public class CsvUtils
             reader.skip(rowIndex);
             return Arrays.asList(reader.readNext());
 
-        } catch (IOException e) {
+        } catch (final IOException e) {
             LOGGER.error(String.format(CSV_GET_ROW_ERROR, rowIndex, csvFile.toString()), e);
             return null;
         }
@@ -78,17 +78,22 @@ public class CsvUtils
      *
      * @return the column with the specified index, or null if it could not be retrieved
      */
-    public static List<String> getColumn(int columnIndex, File csvFile, Charset charset)
+    public static List<String> getColumn(final int columnIndex, final File csvFile, final Charset charset)
     {
         final List<String> column = new LinkedList<>();
 
         try
             (BufferedReader fileReader = FileUtils.getReader(csvFile, charset);
              CSVReader reader = new CSVReader(fileReader)) {
-            String [] row;
 
-            while ((row = reader.readNext()) != null)
-                column.add(row[columnIndex]);
+            while (true) {
+                final String [] row = reader.readNext();
+
+                if (row == null)
+                    break;
+                else
+                    column.add(row[columnIndex]);
+            }
 
         } catch (IOException | ArrayIndexOutOfBoundsException e) {
             LOGGER.error(String.format(CSV_GET_COLUMN_ERROR, columnIndex, csvFile.toString()), e);
