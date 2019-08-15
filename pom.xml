@@ -5,22 +5,23 @@
 	<modelVersion>4.0.0</modelVersion>
 	<parent>
 		<groupId>de.gerdi-project</groupId>
-		<artifactId>GeRDI-parent-harvester</artifactId>
-		<version>7.3.5</version>
+		<artifactId>GeRDI-parent</artifactId>
+		<version>4.0.0</version>
 	</parent>
-	
+
 	<artifactId>FishStatJ-HarvesterService</artifactId>
-	<version>7.3.2</version>
+	<version>7.4.0-SNAPSHOT</version>
     <packaging>war</packaging>
 	<name>FishStatJ Harvester Service</name>
 	<description>This is a restful harvester for retrieving data from http://www.fao.org/fishery/statistics/collections/en</description>
-    <inceptionYear>2018</inceptionYear>
-  
-    <properties>
-        <zipforj.dependency.version>1.3.2</zipforj.dependency.version>
-        <openscv.dependency.version>4.4</openscv.dependency.version>
-    </properties>
-	
+	<inceptionYear>2018</inceptionYear>
+
+	<properties>
+		<zipforj.dependency.version>1.3.2</zipforj.dependency.version>
+		<openscv.dependency.version>4.4</openscv.dependency.version>
+		<restfulharvester.dependency.version>7.4.0</restfulharvester.dependency.version>
+	</properties>
+
 	<developers>
 		<developer>
 			<name>Bohdan Tkachuk</name>
@@ -36,24 +37,31 @@
 		</developer>
 	</developers>
 
-	<dependencies>		
-        <dependency>
-            <groupId>net.lingala.zip4j</groupId>
-            <artifactId>zip4j</artifactId>
-            <version>${zipforj.dependency.version}</version>
-        </dependency>
-        <dependency>
-             <groupId>com.opencsv</groupId>
-             <artifactId>opencsv</artifactId>
-            <version>${openscv.dependency.version}</version>
-        </dependency>
+	<dependencies>
+		<dependency>
+			<groupId>de.gerdi-project</groupId>
+			<artifactId>RestfulHarvester-Library</artifactId>
+			<version>${restfulharvester.dependency.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>net.lingala.zip4j</groupId>
+			<artifactId>zip4j</artifactId>
+			<version>${zipforj.dependency.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>com.opencsv</groupId>
+			<artifactId>opencsv</artifactId>
+			<version>${openscv.dependency.version}</version>
+		</dependency>
 	</dependencies>
 
-    <!-- Define Sonatype repository for retrieving SNAPSHOT versions -->
-    <repositories>
-        <repository>
-            <id>Sonatype</id>
-            <url>https://oss.sonatype.org/content/repositories/snapshots/</url>
-        </repository>
-    </repositories>
+	<!-- Define Sonatype repository for retrieving SNAPSHOT versions -->
+	<repositories>
+		<repository>
+			<id>Sonatype</id>
+			<url>https://oss.sonatype.org/content/repositories/snapshots/</url>
+		</repository>
+	</repositories>
 </project>

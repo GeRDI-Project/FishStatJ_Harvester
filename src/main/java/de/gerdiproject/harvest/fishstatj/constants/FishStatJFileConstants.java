@@ -56,7 +56,7 @@ public class FishStatJFileConstants
     public static final FilenameFilter CSV_FILE_FILTER = new FilenameFilter()
     {
         @Override
-        public boolean accept(File dir, String name) {
+        public boolean accept(final File dir, final String name) {
             return name.endsWith(".csv");
         }
     };

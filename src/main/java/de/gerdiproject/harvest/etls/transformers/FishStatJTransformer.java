@@ -17,44 +17,33 @@
 package de.gerdiproject.harvest.etls.transformers;
 
 import java.io.File;
-import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.regex.Matcher;
 
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
-
-import com.google.gson.Gson;
 
 import de.gerdiproject.harvest.etls.AbstractETL;
 import de.gerdiproject.harvest.etls.FishStatJETL;
 import de.gerdiproject.harvest.etls.FishStatJLanguageVO;
 import de.gerdiproject.harvest.etls.extractors.FishStatJCollectionVO;
 import de.gerdiproject.harvest.fishstatj.constants.FishStatJDataCiteConstants;
-import de.gerdiproject.harvest.fishstatj.constants.FishStatJFileConstants;
-import de.gerdiproject.harvest.fishstatj.constants.FishStatJLanguageConstants;
 import de.gerdiproject.harvest.fishstatj.constants.FishStatJSourceConstants;
-import de.gerdiproject.harvest.fishstatj.utils.CsvUtils;
-import de.gerdiproject.harvest.utils.data.DiskIO;
+import de.gerdiproject.harvest.fishstatj.utils.FishStatJFileParser;
 import de.gerdiproject.harvest.utils.file.FileUtils;
 import de.gerdiproject.json.datacite.Contributor;
 import de.gerdiproject.json.datacite.DataCiteJson;
-import de.gerdiproject.json.datacite.Date;
 import de.gerdiproject.json.datacite.Description;
 import de.gerdiproject.json.datacite.Rights;
 import de.gerdiproject.json.datacite.Subject;
 import de.gerdiproject.json.datacite.Title;
-import de.gerdiproject.json.datacite.abstr.AbstractDate;
 import de.gerdiproject.json.datacite.enums.ContributorType;
-import de.gerdiproject.json.datacite.enums.DateType;
 import de.gerdiproject.json.datacite.enums.NameType;
 import de.gerdiproject.json.datacite.enums.TitleType;
 import de.gerdiproject.json.datacite.extension.generic.ResearchData;
@@ -70,21 +59,19 @@ import de.gerdiproject.json.datacite.nested.PersonName;
  */
 public class FishStatJTransformer extends AbstractIteratorTransformer<FishStatJCollectionVO, DataCiteJson>
 {
-    private final DiskIO diskReader = new DiskIO(new Gson(), StandardCharsets.UTF_8);
-
+    private final FishStatJFileParser fileParser = new FishStatJFileParser();
     private FishStatJLanguageVO languageVo;
 
 
     @Override
-    public void init(AbstractETL<?, ?> etl)
+    public void init(final AbstractETL<?, ?> etl)
     {
-        super.init(etl);
         this.languageVo = ((FishStatJETL) etl).getLanguageVO();
     }
 
 
     @Override
-    protected DataCiteJson transformElement(FishStatJCollectionVO source) throws TransformerException
+    protected DataCiteJson transformElement(final FishStatJCollectionVO source) throws TransformerException
     {
         final DataCiteJson document = new DataCiteJson(source.getCollectionUrl());
         document.setLanguage(languageVo.getApiName());
@@ -110,11 +97,11 @@ public class FishStatJTransformer extends AbstractIteratorTransformer<FishStatJC
         final File downloadFolder = source.getDownloadFolder();
 
         if (downloadFolder != null) {
-            document.addRights(getRightsFromDownloadedFiles(downloadFolder));
-            document.addDates(getDatesFromDownloadedFiles(downloadFolder));
-            document.addSubjects(getSubjectsFromDownloadedFiles(downloadFolder));
+            document.addRights(fileParser.getRights(downloadFolder));
+            document.addDates(fileParser.getDates(downloadFolder));
+            document.addSubjects(fileParser.getSubjects(downloadFolder));
 
-            // clean up unzipped files
+            // remove unzipped files
             FileUtils.deleteFile(downloadFolder);
         }
 
@@ -129,7 +116,7 @@ public class FishStatJTransformer extends AbstractIteratorTransformer<FishStatJC
      *
      * @return a {@linkplain List} of FishStatJ {@linkplain Title}s
      */
-    private List<Title> getTitles(FishStatJCollectionVO source)
+    private List<Title> getTitles(final FishStatJCollectionVO source)
     {
         final List<Title> titleList = new LinkedList<Title>();
 
@@ -156,14 +143,14 @@ public class FishStatJTransformer extends AbstractIteratorTransformer<FishStatJC
      *
      * @return a {@linkplain List} of FishStatJ {@linkplain Description}s
      */
-    private List<Description> getDescriptions(FishStatJCollectionVO source)
+    private List<Description> getDescriptions(final FishStatJCollectionVO source)
     {
         final List<Description> descriptionList = new LinkedList<>();
 
         final Map<String, Element> sections = getSections(source);
 
         // retrieve interesting section text
-        for (String sectionTitle : languageVo.getValidDescriptionMap().keySet()) {
+        for (final String sectionTitle : languageVo.getValidDescriptionMap().keySet()) {
             final Element sectionBody = sections.get(sectionTitle);
 
             if (sectionBody != null) {
@@ -186,7 +173,7 @@ public class FishStatJTransformer extends AbstractIteratorTransformer<FishStatJC
      *
      * @return a {@linkplain List} of FishStatJ {@linkplain Rights}
      */
-    private List<Rights> getRights(FishStatJCollectionVO source)
+    private List<Rights> getRights(final FishStatJCollectionVO source)
     {
         final List<Rights> rightsList = new LinkedList<>();
 
@@ -212,7 +199,7 @@ public class FishStatJTransformer extends AbstractIteratorTransformer<FishStatJC
      *
      * @return a {@linkplain List} of logo and view {@linkplain WebLink}s
      */
-    private List<WebLink> getLogoAndViewWebLinks(FishStatJCollectionVO source)
+    private List<WebLink> getLogoAndViewWebLinks(final FishStatJCollectionVO source)
     {
         final WebLink viewLink = new WebLink(
             source.getCollectionUrl(),
@@ -231,7 +218,7 @@ public class FishStatJTransformer extends AbstractIteratorTransformer<FishStatJC
      *
      * @return a {@linkplain List} of FishStatJ {@linkplain WebLink}s
      */
-    private List<WebLink> getSectionWebLinks(FishStatJCollectionVO source)
+    private List<WebLink> getSectionWebLinks(final FishStatJCollectionVO source)
     {
         // parse links from relevant section
         final List<WebLink> weblinks = new LinkedList<>();
@@ -244,29 +231,21 @@ public class FishStatJTransformer extends AbstractIteratorTransformer<FishStatJC
             final Elements infoLinks = datasetSection.children().select(FishStatJSourceConstants.LINKS_AND_CAPTIONS_SELECTION);
             String titleAboveLink = "";
 
-            for (Element ele : infoLinks) {
+            for (final Element ele : infoLinks) {
                 // if the element is a title before a link, store it
                 if (ele.hasClass(FishStatJSourceConstants.CAPTION_CLASS))
                     titleAboveLink = ele.text().trim();
-                else {
-                    final WebLink link = parseWebLink(ele, titleAboveLink);
-
-                    if (link != null) {
-                        if (titleAboveLink.equals(languageVo.getDatasetSubTitle()))
-                            link.setType(WebLinkType.SourceURL);
-
-                        weblinks.add(link);
-                    }
-                }
+                else
+                    weblinks.add(parseWebLink(ele, titleAboveLink));
             }
         }
 
         // parse other related web links
-        for (Entry<String, Element> section : sections.entrySet()) {
+        for (final Entry<String, Element> section : sections.entrySet()) {
             if (!section.getKey().equals(languageVo.getWebLinksSectionTitle())) {
                 final Elements infoLinks = section.getValue().select(FishStatJSourceConstants.LINKS_SELECTION);
 
-                for (Element ele : infoLinks)
+                for (final Element ele : infoLinks)
                     weblinks.add(parseWebLink(ele, null));
             }
         }
@@ -282,7 +261,7 @@ public class FishStatJTransformer extends AbstractIteratorTransformer<FishStatJC
      *
      * @return a {@linkplain List} of FishStatJ {@linkplain ResearchData}
      */
-    private List<ResearchData> getResearchData(FishStatJCollectionVO source)
+    private List<ResearchData> getResearchData(final FishStatJCollectionVO source)
     {
         // parse links from relevant section
         final List<ResearchData> downloads = new LinkedList<>();
@@ -295,7 +274,7 @@ public class FishStatJTransformer extends AbstractIteratorTransformer<FishStatJC
 
         final Elements infoLinks = linkSection.children().select(FishStatJSourceConstants.LINKS_SELECTION);
 
-        for (Element linkElement : infoLinks) {
+        for (final Element linkElement : infoLinks) {
             final String fileUrl = getUrlFromLink(linkElement);
 
             // if this is a downloadable file, skip the link
@@ -320,12 +299,12 @@ public class FishStatJTransformer extends AbstractIteratorTransformer<FishStatJC
      *
      * @return a {@linkplain List} of side bar {@linkplain WebLink}s
      */
-    private List<WebLink> getSideBarWebLinks(FishStatJCollectionVO source)
+    private List<WebLink> getSideBarWebLinks(final FishStatJCollectionVO source)
     {
         final List<WebLink> weblinks = new LinkedList<>();
 
         // add side bar links
-        for (String sideBarTitle : languageVo.getSidebarTitles()) {
+        for (final String sideBarTitle : languageVo.getSidebarTitles()) {
             final String sideBarSelection = String.format(
                                                 FishStatJSourceConstants.CONTAINS_TEXT_SELECTION,
                                                 sideBarTitle);
@@ -351,7 +330,7 @@ public class FishStatJTransformer extends AbstractIteratorTransformer<FishStatJC
      *
      * @return a {@linkplain List} of FishStatJ {@linkplain Contributor}s
      */
-    private List<Contributor> getContributors(FishStatJCollectionVO source)
+    private List<Contributor> getContributors(final FishStatJCollectionVO source)
     {
         final List<Contributor> contributorList = new LinkedList<>();
 
@@ -360,7 +339,7 @@ public class FishStatJTransformer extends AbstractIteratorTransformer<FishStatJC
 
             String fullName = null;
 
-            for (Element item : contactElements) {
+            for (final Element item : contactElements) {
 
                 // if the element is a div, it can be the name of the upcoming mailto link
                 if (item.tagName().equals(FishStatJSourceConstants.DIV))
@@ -382,8 +361,8 @@ public class FishStatJTransformer extends AbstractIteratorTransformer<FishStatJC
 
                         if (nameMatcher.find()) {
                             // either groups 1&2 are matching or groups 3&4, two distinct notations of names, both of which are handled here
-                            final String firstName = nameMatcher.group(1) != null ? nameMatcher.group(1) : nameMatcher.group(4);
-                            final String lastName = nameMatcher.group(2) != null ? nameMatcher.group(2) : nameMatcher.group(3);
+                            final String firstName = nameMatcher.group(1) == null ? nameMatcher.group(4) : nameMatcher.group(1);
+                            final String lastName = nameMatcher.group(2) == null ? nameMatcher.group(3) : nameMatcher.group(2);
 
                             final Contributor contributor = new Contributor(
                                 new PersonName(fullName, NameType.Personal),
@@ -408,7 +387,7 @@ public class FishStatJTransformer extends AbstractIteratorTransformer<FishStatJC
      *
      * @return a {@linkplain List} of FishStatJ {@linkplain Subject}s
      */
-    private Collection<Subject> getSubjects(FishStatJCollectionVO source)
+    private Collection<Subject> getSubjects(final FishStatJCollectionVO source)
     {
         final List<Subject> subjectList = new LinkedList<Subject>();
 
@@ -416,8 +395,9 @@ public class FishStatJTransformer extends AbstractIteratorTransformer<FishStatJC
 
         if (subjectSection != null) {
             final String[] usages = subjectSection.text().split(", ");
+            final int len = usages.length;
 
-            for (int i = 0, len = usages.length; i < len; i++)
+            for (int i = 0; i < len; i++)
                 subjectList.add(new Subject(usages[i], languageVo.getApiName()));
         }
 
@@ -425,135 +405,7 @@ public class FishStatJTransformer extends AbstractIteratorTransformer<FishStatJC
     }
 
 
-    /**
-     * Reads the Notes.txt from the downloaded collection archive and extracts
-     * copyright information.
-     *
-     * @param unzippedFolder the folder containing unzipped collection archive files
-     *
-     * @return a {@linkplain List} of {@linkplain Rights}
-     */
-    private List<Rights> getRightsFromDownloadedFiles(File unzippedFolder)
-    {
-        final List<Rights> rightsList = new LinkedList<>();
 
-        // prepare file reader
-        final File readmeFile = new File(unzippedFolder, FishStatJFileConstants.README_FILE_NAME);
-
-        if (readmeFile.exists()) {
-            // read file
-            final String text = new DiskIO(new Gson(), StandardCharsets.UTF_8).getString(readmeFile);
-            final int subStringFrom = text.indexOf(FishStatJFileConstants.RIGHTS_TEXT_EXCLUDED_PREFIX);
-
-            // check if the file contains the required text area
-            if (subStringFrom != -1) {
-                final int subStringTo = text.indexOf(FishStatJFileConstants.RIGHTS_TEXT_EXCLUDED_SUFFIX, subStringFrom);
-                final String rightsText = text.substring(
-                                              subStringFrom + FishStatJFileConstants.RIGHTS_TEXT_EXCLUDED_PREFIX.length(),
-                                              subStringTo);
-
-                // this file is always in English
-                rightsList.add(new Rights(rightsText, FishStatJLanguageConstants.ENGLISH_API_NAME));
-            }
-        }
-
-        return rightsList;
-    }
-
-
-    /**
-     * Reads csv files from the downloaded collection archive and extracts
-     * metadata from them.
-     *
-     * @param unzippedFolder the folder containing unzipped collection archive files
-     *
-     * @return a {@linkplain List} of {@linkplain Subject}s
-     */
-    private Collection<Subject> getSubjectsFromDownloadedFiles(File unzippedFolder)
-    {
-        final Set<Subject> subjectSet = new HashSet<Subject>();
-
-        final File[] csvFiles = unzippedFolder.listFiles(FishStatJFileConstants.CSV_FILE_FILTER);
-
-        if (csvFiles != null) {
-
-            for (int i = 0, len = csvFiles.length; i < len; i++) {
-
-                // calculate column shift
-                final int headerShift = csvFiles[i].getName().contains(FishStatJFileConstants.CSV_FILE_WITH_SHIFTED_HEADER) ? 1 : 0;
-
-                // retrieve title row
-                final List<String> titleRow = CsvUtils.getRow(0, csvFiles[i], StandardCharsets.UTF_8);
-
-                if (titleRow != null) {
-
-                    // retrieve interesting columns
-                    for (String colTitle : FishStatJSourceConstants.VALID_SUBJECTS) {
-                        final int columnIndex = titleRow.indexOf(colTitle) + headerShift;
-
-                        if (columnIndex != -1) {
-                            final List<String> column = CsvUtils.getColumn(columnIndex, csvFiles[i], StandardCharsets.UTF_8);
-
-                            if (column != null)
-                                column.forEach((String element) -> subjectSet.add(new Subject(element)));
-                        }
-                    }
-                }
-            }
-        }
-
-        return  subjectSet;
-    }
-
-
-    /**
-     * Reads the Notes.txt from the downloaded collection archive and extracts
-     * date information.
-     *
-     * @param unzippedFolder the folder containing unzipped collection archive files
-     *
-     * @return a {@linkplain List} of {@linkplain AbstractDate}s
-     */
-    private List<AbstractDate> getDatesFromDownloadedFiles(File unzippedFolder)
-    {
-        final List<AbstractDate> dateList = new LinkedList<>();
-
-        // prepare file reader
-        final File readmeFile = new File(unzippedFolder, FishStatJFileConstants.README_FILE_NAME);
-
-        if (readmeFile.exists()) {
-            // read file
-            final String text = diskReader.getString(readmeFile);
-            final int subStringFrom = text.indexOf(FishStatJFileConstants.DATES_TEXT_EXCLUDED_PREFIX);
-
-            // check if the file contains the required text area
-            if (subStringFrom != -1) {
-                final int subStringTo = text.indexOf(FishStatJFileConstants.DATES_TEXT_EXCLUDED_SUFFIX, subStringFrom);
-
-                final String[] dateTextLines = text
-                                               .substring(subStringFrom + FishStatJFileConstants.DATES_TEXT_EXCLUDED_PREFIX.length(), subStringTo)
-                                               .split("\n");
-
-                for (int i = 0, len = dateTextLines.length; i < len; i++) {
-                    final String[] dateInfo = dateTextLines[i].split("  ");
-                    final String version = dateInfo[0];
-                    final String dateString = dateInfo[1];
-                    final String description = dateInfo[2];
-
-                    final String dateInformation = String.format(FishStatJDataCiteConstants.DATE_INFORMATION, version, description);
-                    final DateType dateType = description.contains(FishStatJFileConstants.ISSUED_DATE_KEYWORD)
-                                              ? DateType.Issued
-                                              : DateType.Updated;
-
-                    final Date date = new Date(dateString, dateType);
-                    date.setDateInformation(dateInformation);
-                    dateList.add(date);
-                }
-            }
-        }
-
-        return dateList;
-    }
 
 
     /**
@@ -563,7 +415,7 @@ public class FishStatJTransformer extends AbstractIteratorTransformer<FishStatJC
      *
      * @return a map of collection section titles to corresponding body elements
      */
-    private static Map<String, Element> getSections(FishStatJCollectionVO source)
+    private static Map<String, Element> getSections(final FishStatJCollectionVO source)
     {
         final Map<String, Element> map = new HashMap<>();
         final Elements subSections = source.getCollectionPage().select(FishStatJSourceConstants.ALL_SECTIONS_SELECTION);
@@ -590,7 +442,7 @@ public class FishStatJTransformer extends AbstractIteratorTransformer<FishStatJC
      *
      * @return a formatted URL or null, if the linkElement is empty or lacks a href attribute
      */
-    private static String getUrlFromLink(Element linkElement)
+    private static String getUrlFromLink(final Element linkElement)
     {
         if (linkElement == null || !linkElement.hasAttr(FishStatJSourceConstants.HREF_ATTRIBUTE))
             return null;
@@ -609,7 +461,7 @@ public class FishStatJTransformer extends AbstractIteratorTransformer<FishStatJC
      *
      * @return a {@linkplain WebLink} or null, if the element is a download link
      */
-    private WebLink parseWebLink(Element linkElement, String alternativeTitle)
+    private WebLink parseWebLink(final Element linkElement, final String alternativeTitle)
     {
         final String url = getUrlFromLink(linkElement);
 
@@ -625,10 +477,22 @@ public class FishStatJTransformer extends AbstractIteratorTransformer<FishStatJC
             title = title.replace(languageVo.getWebLinkTitleRegex(), FishStatJSourceConstants.CLICK_HERE_REPLACE);
 
         // determine the type of the web link
-        final WebLinkType type = url.endsWith(FishStatJSourceConstants.GIF_EXTENSION)
-                                 ? WebLinkType.ThumbnailURL
-                                 : WebLinkType.Related;
+        final WebLinkType type;
+
+        if (alternativeTitle != null && alternativeTitle.equals(languageVo.getDatasetSubTitle()))
+            type = WebLinkType.SourceURL;
+        else if (url.endsWith(FishStatJSourceConstants.GIF_EXTENSION))
+            type = WebLinkType.ThumbnailURL;
+        else
+            type = WebLinkType.Related;
 
         return new WebLink(url, title, type);
+    }
+
+
+    @Override
+    public void clear()
+    {
+        // nothing to clean up
     }
 }

@@ -15,10 +15,9 @@
  */
 package de.gerdiproject.harvest.fishstatj.utils;
 
+import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.LinkedList;
@@ -29,6 +28,7 @@ import org.slf4j.LoggerFactory;
 
 import com.opencsv.CSVReader;
 
+import de.gerdiproject.harvest.utils.file.FileUtils;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
@@ -54,14 +54,15 @@ public class CsvUtils
      *
      * @return the row with the specified index, or null if it could not be retrieved
      */
-    public static List<String> getRow(int rowIndex, File csvFile, Charset charset)
+    public static List<String> getRow(final int rowIndex, final File csvFile, final Charset charset)
     {
         try
-            (CSVReader reader = new CSVReader(new InputStreamReader(new FileInputStream(csvFile), charset))) {
+            (BufferedReader fileReader = FileUtils.getReader(csvFile, charset);
+             CSVReader reader = new CSVReader(fileReader)) {
             reader.skip(rowIndex);
             return Arrays.asList(reader.readNext());
 
-        } catch (IOException e) {
+        } catch (final IOException e) {
             LOGGER.error(String.format(CSV_GET_ROW_ERROR, rowIndex, csvFile.toString()), e);
             return null;
         }
@@ -77,16 +78,22 @@ public class CsvUtils
      *
      * @return the column with the specified index, or null if it could not be retrieved
      */
-    public static List<String> getColumn(int columnIndex, File csvFile, Charset charset)
+    public static List<String> getColumn(final int columnIndex, final File csvFile, final Charset charset)
     {
         final List<String> column = new LinkedList<>();
 
         try
-            (CSVReader reader = new CSVReader(new InputStreamReader(new FileInputStream(csvFile), charset))) {
-            String [] row;
+            (BufferedReader fileReader = FileUtils.getReader(csvFile, charset);
+             CSVReader reader = new CSVReader(fileReader)) {
 
-            while ((row = reader.readNext()) != null)
-                column.add(row[columnIndex]);
+            while (true) {
+                final String [] row = reader.readNext();
+
+                if (row == null)
+                    break;
+                else
+                    column.add(row[columnIndex]);
+            }
 
         } catch (IOException | ArrayIndexOutOfBoundsException e) {
             LOGGER.error(String.format(CSV_GET_COLUMN_ERROR, columnIndex, csvFile.toString()), e);
