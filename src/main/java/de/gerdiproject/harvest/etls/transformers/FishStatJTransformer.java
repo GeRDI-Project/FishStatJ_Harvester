@@ -75,7 +75,7 @@ public class FishStatJTransformer extends AbstractIteratorTransformer<FishStatJC
     protected DataCiteJson transformElement(final FishStatJCollectionVO source) throws TransformerException
     {
         this.downloadFolder = source.getDownloadFolder();
-        
+
         final DataCiteJson document = new DataCiteJson(source.getCollectionUrl());
         document.setLanguage(languageVo.getApiName());
 
@@ -186,7 +186,9 @@ public class FishStatJTransformer extends AbstractIteratorTransformer<FishStatJC
             final String rightsText = rightsSection.text().trim();
             final String rightsUrl = getUrlFromLink(rightsLink);
 
-            rightsList.add(new Rights(rightsText, languageVo.getApiName(), rightsUrl));
+            final Rights rights = new Rights(rightsText, languageVo.getApiName());
+            rights.setUri(rightsUrl);
+            rightsList.add(rights);
         }
 
         return rightsList;
@@ -495,7 +497,7 @@ public class FishStatJTransformer extends AbstractIteratorTransformer<FishStatJC
     public void clear()
     {
         // remove temporarily unzipped files
-        if(downloadFolder != null) {
+        if (downloadFolder != null) {
             FileUtils.deleteFile(downloadFolder);
             downloadFolder = null;
         }

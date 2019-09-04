@@ -28,6 +28,7 @@ import de.gerdiproject.json.datacite.extension.generic.WebLink;
 import de.gerdiproject.json.datacite.extension.generic.constants.ResearchDisciplineConstants;
 import de.gerdiproject.json.datacite.extension.generic.enums.WebLinkType;
 import de.gerdiproject.json.datacite.nested.PersonName;
+import de.gerdiproject.json.datacite.nested.Publisher;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
@@ -41,7 +42,7 @@ import lombok.NoArgsConstructor;
 public class FishStatJDataCiteConstants
 {
     public static final String REPOSITORY_ID = "FishStatJ";
-    public static final String PROVIDER = "Food and Agriculture Organization of the United Nations (FAO)";
+    public static final Publisher PROVIDER = new Publisher("Food and Agriculture Organization of the United Nations (FAO)", "en");
 
     public static final String VIEW_URL_TITLE = "View Collection";
 
@@ -90,7 +91,7 @@ public class FishStatJDataCiteConstants
     {
         final Creator fishStatJCreator =
             new Creator(new PersonName(
-                            PROVIDER,
+                            PROVIDER.getValue(),
                             NameType.Organisational));
 
         return Collections.unmodifiableList(Arrays.asList(fishStatJCreator));
