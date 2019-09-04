@@ -61,6 +61,7 @@ public class FishStatJTransformer extends AbstractIteratorTransformer<FishStatJC
 {
     private final FishStatJFileParser fileParser = new FishStatJFileParser();
     private FishStatJLanguageVO languageVo;
+    private File downloadFolder;
 
 
     @Override
@@ -73,6 +74,8 @@ public class FishStatJTransformer extends AbstractIteratorTransformer<FishStatJC
     @Override
     protected DataCiteJson transformElement(final FishStatJCollectionVO source) throws TransformerException
     {
+        this.downloadFolder = source.getDownloadFolder();
+        
         final DataCiteJson document = new DataCiteJson(source.getCollectionUrl());
         document.setLanguage(languageVo.getApiName());
 
@@ -94,8 +97,6 @@ public class FishStatJTransformer extends AbstractIteratorTransformer<FishStatJC
         document.addSubjects(getSubjects(source));
 
         // retrieve metadata from downloaded zip archive
-        final File downloadFolder = source.getDownloadFolder();
-
         if (downloadFolder != null) {
             document.addRights(fileParser.getRights(downloadFolder));
             document.addDates(fileParser.getDates(downloadFolder));
@@ -493,6 +494,10 @@ public class FishStatJTransformer extends AbstractIteratorTransformer<FishStatJC
     @Override
     public void clear()
     {
-        // nothing to clean up
+        // remove temporarily unzipped files
+        if(downloadFolder != null) {
+            FileUtils.deleteFile(downloadFolder);
+            downloadFolder = null;
+        }
     }
 }
