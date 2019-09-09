@@ -29,9 +29,8 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipException;
 import java.util.zip.ZipInputStream;
 
-import org.jsoup.nodes.Document;
-import org.jsoup.nodes.Element;
-import org.jsoup.select.Elements;
+import javax.lang.model.util.Elements;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -190,7 +189,8 @@ public class FishStatJExtractor extends AbstractIteratorExtractor<FishStatJColle
                 return null;
 
             // unzip file
-            final File unzipFolder = new File(FishStatJFileConstants.UNZIP_FOLDER + zipLinkElement.text().replaceAll("\\W", ""));
+            final File unzipRootFolder = EventSystem.sendSynchronousEvent(new GetCacheFolderEvent());
+            final File unzipFolder = new File(unzipRootFolder, FishStatJFileConstants.UNZIP_FOLDER + zipLinkElement.text().replaceAll("\\W", ""));
             final boolean isUnzipped = unZipFileFromUrl(zipUrl, unzipFolder);
 
             if (!isUnzipped)
