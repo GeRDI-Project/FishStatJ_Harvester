@@ -171,7 +171,7 @@ public class FishStatJFileParser
                                               : DateType.Updated;
 
                     final Date date = new Date(dateString, dateType);
-                    date.setDateInformation(dateInformation);
+                    date.setInformation(dateInformation);
                     dateList.add(date);
                 }
             }

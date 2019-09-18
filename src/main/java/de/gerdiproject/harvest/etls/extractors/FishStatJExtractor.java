@@ -25,20 +25,22 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.util.Iterator;
+import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipException;
 import java.util.zip.ZipInputStream;
 
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
-import org.jsoup.select.Elements;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import de.gerdiproject.harvest.application.events.GetCacheFolderEvent;
 import de.gerdiproject.harvest.etls.AbstractETL;
 import de.gerdiproject.harvest.etls.ETLPreconditionException;
 import de.gerdiproject.harvest.etls.FishStatJETL;
 import de.gerdiproject.harvest.etls.FishStatJLanguageVO;
+import de.gerdiproject.harvest.event.EventSystem;
 import de.gerdiproject.harvest.fishstatj.constants.FishStatJFileConstants;
 import de.gerdiproject.harvest.fishstatj.constants.FishStatJSourceConstants;
 import de.gerdiproject.harvest.utils.data.HttpRequester;
@@ -75,7 +77,7 @@ public class FishStatJExtractor extends AbstractIteratorExtractor<FishStatJColle
         if (baseWebsite == null)
             throw new ETLPreconditionException(FishStatJSourceConstants.FISHSTAT_TIMEOUT_ERROR);
 
-        final Elements fishStatJSources = baseWebsite.select(FishStatJSourceConstants.MAIN_PAGE_LINKS_SELECTION);
+        final List<Element> fishStatJSources = baseWebsite.select(FishStatJSourceConstants.MAIN_PAGE_LINKS_SELECTION);
 
         this.fishStatJPageCount = fishStatJSources.size();
 
@@ -190,7 +192,8 @@ public class FishStatJExtractor extends AbstractIteratorExtractor<FishStatJColle
                 return null;
 
             // unzip file
-            final File unzipFolder = new File(FishStatJFileConstants.UNZIP_FOLDER + zipLinkElement.text().replaceAll("\\W", ""));
+            final File unzipRootFolder = EventSystem.sendSynchronousEvent(new GetCacheFolderEvent());
+            final File unzipFolder = new File(unzipRootFolder, FishStatJFileConstants.UNZIP_FOLDER + zipLinkElement.text().replaceAll("\\W", ""));
             final boolean isUnzipped = unZipFileFromUrl(zipUrl, unzipFolder);
 
             if (!isUnzipped)
