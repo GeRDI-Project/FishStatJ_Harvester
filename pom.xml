@@ -10,7 +10,7 @@
 	</parent>
 
 	<artifactId>FishStatJ-HarvesterService</artifactId>
-	<version>8.1.1</version>
+	<version>8.1.2</version>
     <packaging>war</packaging>
 	<name>FishStatJ Harvester Service</name>
 	<description>This is a restful harvester for retrieving data from http://www.fao.org/fishery/statistics/collections/en</description>
@@ -19,7 +19,7 @@
 	<properties>
 		<zipforj.dependency.version>1.3.2</zipforj.dependency.version>
 		<openscv.dependency.version>4.4</openscv.dependency.version>
-		<restfulharvester.dependency.version>8.1.1</restfulharvester.dependency.version>
+		<restfulharvester.dependency.version>8.1.5</restfulharvester.dependency.version>
 	</properties>
 
 	<developers>
@@ -42,6 +42,14 @@
 			<groupId>de.gerdi-project</groupId>
 			<artifactId>RestfulHarvester-Library</artifactId>
 			<version>${restfulharvester.dependency.version}</version>
+		</dependency>
+		
+		<dependency>
+			<groupId>de.gerdi-project</groupId>
+			<artifactId>RestfulHarvester-Library</artifactId>
+			<version>${restfulharvester.dependency.version}</version>
+			<type>test-jar</type>
+			<scope>test</scope>
 		</dependency>
 
 		<dependency>
