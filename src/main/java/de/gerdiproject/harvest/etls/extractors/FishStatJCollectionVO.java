@@ -36,4 +36,62 @@ public class FishStatJCollectionVO
     private final Document collectionPage;
     private final Document contactsPage;
     private final File downloadFolder;
+
+
+    /**
+     *
+     */
+    @Override
+    public boolean equals(Object obj)
+    {
+        if (this == obj)
+            return true;
+
+        if (obj == null)
+            return false;
+
+        if (getClass() != obj.getClass())
+            return false;
+
+        final FishStatJCollectionVO other = (FishStatJCollectionVO) obj;
+
+        if (collectionUrl == null) {
+            if (other.collectionUrl != null)
+                return false;
+        } else if (!collectionUrl.equals(other.collectionUrl))
+            return false;
+
+        if (downloadFolder == null) {
+            if (other.downloadFolder != null)
+                return false;
+        } else if (!downloadFolder.equals(other.downloadFolder))
+            return false;
+
+        if (collectionPage == null) {
+            if (other.collectionPage != null)
+                return false;
+        } else if (!collectionPage.hasSameValue(other.collectionPage))
+            return false;
+
+        if (contactsPage == null) {
+            if (other.contactsPage != null)
+                return false;
+        } else if (!contactsPage.hasSameValue(other.contactsPage))
+            return false;
+
+        return true;
+    }
+
+
+    @Override
+    public int hashCode()
+    {
+        final int prime = 31;
+        int result = 1;
+        result = prime * result + ((collectionPage == null) ? 0 : collectionPage.hashCode());
+        result = prime * result + ((collectionUrl == null) ? 0 : collectionUrl.hashCode());
+        result = prime * result + ((contactsPage == null) ? 0 : contactsPage.hashCode());
+        result = prime * result + ((downloadFolder == null) ? 0 : downloadFolder.hashCode());
+        return result;
+    }
 }

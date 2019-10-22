@@ -1,0 +1,112 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+ <head></head>
+ <body>
+  <div id="container">
+   <div id="main">
+    <table id="mainTable">
+     <tbody>
+      <tr valign="top">
+       <td id="sidebarContainer">
+        <div class="noPrint" id="sidebar">
+         <div id="menuMocked sidebar">
+            <ul class="subList">
+             <li title="Mocked Collections" class="mockedLiClass">Mocked Collections
+              <ul id="menuMocked Collections" class="mockedMenuClass">
+               <li title="Mocked Collection" class="mockedLiClass">Mocked Collection
+                <ul id="menuMocked Collection" class="mockedMenuClass">
+                 <li title="Coverage" class="mockedLiClass"><a href="/mocked/Coverage">Coverage</a></li>
+                 <li title="Structure" class="mockedLiClass"><a href="/mocked/Structure">Structure</a></li>
+                 <li title="Data Source" class="mockedLiClass"><a href="/mocked/DataSource">Data Source</a></li>
+                 <li title="Contacts" class="mockedLiClass"><a href="/mocked/Contacts">Contacts</a></li>
+                </ul></li>
+               </ul></li>
+          </ul>
+         </div>
+        </div></td>
+       <td id="mockedRight">
+        <div id="subMockedRight">
+         <div id="allWidth">
+          <div id="pageHeader">
+           <table>
+            <tbody>
+             <tr>
+              <td>
+               <table>
+                <tbody>
+                 <tr>
+                  <td id="head_title_box"><span class="subTitle" id="head_title_class">Mocked SubTitle </span></td>
+                 </tr>
+                 <tr>
+                  <td id="head_title_instance" style="">Mocked Title </td>
+                 </tr>
+                </tbody>
+               </table></td>
+             </tr>
+            </tbody>
+           </table>
+          </div>
+          <table class="tableHead" id="tcNC0031">
+           <tbody>
+            <tr>
+             <td class="title">Collection Overview&nbsp;</td>
+             <td class="title" valign="top" align="right"><img alt="" src="mockedIcon.gif"></td>
+             <td class="spacer">&nbsp;</td>
+            </tr>
+           </tbody>
+          </table>
+          <div>Mocked Collection Overview</div>
+          <table class="tableHead" id="tcNC0096" cellspacing="0" cellpadding="0">
+           <tbody>
+            <tr>
+             <td class="title"><img src="mockedIcon.gif"></td>
+             <td class="title" >Available Formats &amp; Information Products&nbsp;</td>
+             <td class="title"><img alt="" src="mockedIcon.gif"></td>
+             <td class="spacer">&nbsp;</td>
+            </tr>
+           </tbody>
+          </table>
+          <div>
+           <span class="subTitle">Dataset</span>
+           <br>
+           <a href="javascript:new_window('/mocked/statistics','biblio',1,1,1,1,1,1,1,700,650);">Mocked Dataset Statistics (online query)</a>
+           <br>
+           <br>
+           <span class="subTitle">Dataset</span>
+           <br>
+           <a href="http://www.mock.ed/totalProduction">Mocked Dataset (FishStatJ)</a>
+           <br>
+           <br>
+           <span class="subTitle">Dataset</span>
+           <br>
+           <a href="file:debug/unit-tests/mockedZip.zip">Mocked Dataset (CSV)</a>
+           <br>
+           <br>
+           <span class="subTitle">Publication</span>
+           <br>Mocked Publication Description
+           <a href="http://www.mock.ed/publication"><img alt="Link to resource" src="mockedIcon.gif"></a>
+          </div>
+          <table class="tableHead" id="tcNC001F" cellspacing="0" cellpadding="0">
+           <tbody>
+            <tr>
+             <td class="title" valign="top" align="left"><img src="mockedIcon.gif"></td>
+             <td class="title">Status&nbsp;</td>
+             <td class="title" valign="top" align="right"><img alt="" src="mockedIcon.gif"></td>
+             <td class="spacer">&nbsp;</td>
+            </tr>
+           </tbody>
+          </table>
+          <div>
+           Mocked Status Description
+           <a href="/mocked/integratedLink">Mocked Integrated Link</a>
+           <br>
+          </div>
+         </div>
+        </div></td>
+      </tr>
+     </tbody>
+    </table>
+   </div>
+  </div>
+ </body>
+</html>
