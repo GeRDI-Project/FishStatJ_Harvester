@@ -1,0 +1,17 @@
+bla bla this is a mocked readme
+really
+I
+mean it!
+
+
+COPYRIGHT & DISCLAIMER CLAUSES
+
+This is a mocked up RIGHTS text.
+For comments, views and suggestions please do nothing, for this is just a mock-up!
+
+
+Version History:\n
+v1.0  01.01.2000  mocked description 1 (release)
+v1.1  2002/02/02  mocked description 2
+v2.0  2003.03  mocked description 3
+\n\n© FAO (not really though, this is still just a mock-up!)

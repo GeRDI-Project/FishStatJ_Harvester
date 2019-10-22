@@ -16,15 +16,18 @@
  */
 package de.gerdiproject.harvest.etls.transformers;
 
+import java.io.File;
 import java.nio.charset.StandardCharsets;
-import java.util.Map;
 
-import de.gerdiproject.harvest.AbstractIteratorTransformerTest;
 import de.gerdiproject.harvest.FishStatJContextListener;
 import de.gerdiproject.harvest.application.ContextListener;
+import de.gerdiproject.harvest.application.MainContextUtils;
+import de.gerdiproject.harvest.etls.AbstractIteratorETL;
 import de.gerdiproject.harvest.etls.FishStatJETL;
 import de.gerdiproject.harvest.etls.extractors.FishStatJCollectionVO;
 import de.gerdiproject.harvest.utils.data.DiskIO;
+import de.gerdiproject.harvest.utils.data.constants.DataOperationConstants;
+import de.gerdiproject.harvest.utils.file.FileUtils;
 import de.gerdiproject.json.GsonUtils;
 import de.gerdiproject.json.datacite.DataCiteJson;
 
@@ -33,24 +36,49 @@ import de.gerdiproject.json.datacite.DataCiteJson;
  *
  * @author Robin Weiss
  */
-public class FishStatJTransformerTest extends AbstractIteratorTransformerTest<FishStatJTransformer, FishStatJCollectionVO, DataCiteJson>
+public class FishStatJTransformerTest extends AbstractIteratorTransformerTest<FishStatJCollectionVO, DataCiteJson>
 {
     final DiskIO diskReader = new DiskIO(GsonUtils.createGerdiDocumentGsonBuilder().create(), StandardCharsets.UTF_8);
 
 
-    /**
-     * Default Test Constructor.
-     */
-    public FishStatJTransformerTest()
+    @Override
+    protected AbstractIteratorETL<FishStatJCollectionVO, DataCiteJson> getEtl()
     {
-        super(new FishStatJETL(), new FishStatJTransformer());
+        return new FishStatJETL();
     }
 
 
     @Override
-    protected Map<String, String> getParameterValues()
+    protected AbstractIteratorTransformer<FishStatJCollectionVO, DataCiteJson> setUpTestObjects()
     {
-        return null;
+        // copy mocked HTTP responses to the cache folder to drastically speed up the testing
+        final File httpCacheFolder = new File(
+            MainContextUtils.getCacheDirectory(FishStatJTransformerTest.class),
+            DataOperationConstants.CACHE_FOLDER_PATH);
+        FileUtils.copyFile(getResource("mockedHttpResponses"), httpCacheFolder);
+
+        // copy mocked zip file content
+        FileUtils.copyFile(getResource("mockedUnzipFolder"), getTemporaryUnzipFolder());
+
+        return super.setUpTestObjects();
+    }
+
+
+    @Override
+    protected FishStatJCollectionVO getMockedInput()
+    {
+        return new FishStatJCollectionVO(
+                   "http://www.mock.ed/collection",
+                   diskReader.getHtml(getResource("mockedHttpResponses/collection.html").toString()),
+                   diskReader.getHtml(getResource("mockedHttpResponses/contacts.html").toString()),
+                   getTemporaryUnzipFolder());
+    }
+
+
+    @Override
+    protected DataCiteJson getExpectedOutput()
+    {
+        return diskReader.getObject(getResource("output.json"), DataCiteJson.class);
     }
 
 
@@ -61,20 +89,10 @@ public class FishStatJTransformerTest extends AbstractIteratorTransformerTest<Fi
     }
 
 
-    @Override
-    protected FishStatJCollectionVO getMockedInput()
+    private File getTemporaryUnzipFolder()
     {
-        return new FishStatJCollectionVO(
-                "http://www.mock.ed/collection", 
-                diskReader.getHtml(getResource("mockedHttpResponses/collection.html").toString()), 
-                diskReader.getHtml(getResource("mockedHttpResponses/contacts.html").toString()),
-                getResource("mockedDownloads"));
-    }
-
-
-    @Override
-    protected DataCiteJson getExpectedOutput()
-    {
-        return diskReader.getObject(getResource("output.json"), DataCiteJson.class);
+        return new File(
+                   MainContextUtils.getCacheDirectory(FishStatJTransformerTest.class),
+                   "unzipped");
     }
 }
