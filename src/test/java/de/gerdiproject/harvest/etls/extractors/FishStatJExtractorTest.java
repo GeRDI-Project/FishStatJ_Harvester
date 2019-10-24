@@ -30,6 +30,7 @@ import de.gerdiproject.harvest.etls.AbstractIteratorETL;
 import de.gerdiproject.harvest.etls.FishStatJETL;
 import de.gerdiproject.harvest.fishstatj.constants.FishStatJFileConstants;
 import de.gerdiproject.harvest.utils.data.DiskIO;
+import de.gerdiproject.harvest.utils.data.HttpRequesterUtils;
 import de.gerdiproject.harvest.utils.file.FileUtils;
 import de.gerdiproject.json.GsonUtils;
 import de.gerdiproject.json.datacite.DataCiteJson;
@@ -41,11 +42,15 @@ import de.gerdiproject.json.datacite.DataCiteJson;
  */
 public class FishStatJExtractorTest extends AbstractIteratorExtractorTest<FishStatJCollectionVO>
 {
-    private static final String COLLECTION_URL = "http://www.fao.org/fi/website/FIRetrieveAction.do?dom=collection&xml=mocked.xml&lang=en";
+    private static final String CONFIG_PATH = "config.json";
+    private static final File MOCKED_RESPONSE_FOLDER = new File("mockedHttpResponses");
 
-    private static final String MOCKED_RESPONSE_FOLDER = "mockedHttpResponses";
-    private static final String CACHED_COLLECTION_URL = MOCKED_RESPONSE_FOLDER + "/www.fao.org/fi/website/FIRetrieveAction.do%query%/dom=collection&xml=mocked.xml&lang=en.response";
-    private static final String CACHED_CONTACTS_URL = MOCKED_RESPONSE_FOLDER + "/www.fao.org/mocked/Contacts.response";
+    private static final String COLLECTION_URL = "http://www.fao.org/fi/website/FIRetrieveAction.do?dom=collection&xml=mocked.xml&lang=en";
+    private static final String CACHED_COLLECTION_URL = HttpRequesterUtils.urlToFilePath(COLLECTION_URL, MOCKED_RESPONSE_FOLDER).toString();
+
+    private static final String CONTACTS_URL = "http://www.fao.org/mocked/Contacts";
+    private static final String CACHED_CONTACTS_URL = HttpRequesterUtils.urlToFilePath(CONTACTS_URL, MOCKED_RESPONSE_FOLDER).toString();
+
     private static final String MOCKED_ZIP_PATH = "mockedZip.zip";
     private static final String MOCKED_UNZIP_PATH = FishStatJFileConstants.UNZIP_FOLDER + "MockedDatasetCSV";
 
@@ -81,14 +86,14 @@ public class FishStatJExtractorTest extends AbstractIteratorExtractorTest<FishSt
     @Override
     protected File getConfigFile()
     {
-        return getResource("config.json");
+        return getResource(CONFIG_PATH);
     }
 
 
     @Override
     protected File getMockedHttpResponseFolder()
     {
-        return getResource(MOCKED_RESPONSE_FOLDER);
+        return getResource(MOCKED_RESPONSE_FOLDER.toString());
     }
 
 

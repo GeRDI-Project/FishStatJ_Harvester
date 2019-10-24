@@ -18,10 +18,15 @@ package de.gerdiproject.harvest;
 import de.gerdiproject.harvest.application.AbstractContextListenerTest;
 
 /**
- * This class provides Unit Tests for the {@linkplain FaoStatContextListener}.
+ * This class provides Unit Tests for the {@linkplain FishStatJContextListener}.
  *
  * @author Robin Weiss
  */
 public class FishStatJContextListenerTest extends AbstractContextListenerTest<FishStatJContextListener>
 {
+    @Override
+    protected int getMaxInitializationTime()
+    {
+        return 8000;
+    }
 }

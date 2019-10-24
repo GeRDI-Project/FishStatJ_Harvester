@@ -25,6 +25,7 @@ import de.gerdiproject.harvest.application.MainContextUtils;
 import de.gerdiproject.harvest.etls.AbstractIteratorETL;
 import de.gerdiproject.harvest.etls.FishStatJETL;
 import de.gerdiproject.harvest.etls.extractors.FishStatJCollectionVO;
+import de.gerdiproject.harvest.fishstatj.constants.FishStatJFileConstants;
 import de.gerdiproject.harvest.utils.data.DiskIO;
 import de.gerdiproject.harvest.utils.data.constants.DataOperationConstants;
 import de.gerdiproject.harvest.utils.file.FileUtils;
@@ -32,13 +33,18 @@ import de.gerdiproject.json.GsonUtils;
 import de.gerdiproject.json.datacite.DataCiteJson;
 
 /**
- * This class provides Unit Tests for the {@linkplain FaoStatTransformer}.
+ * This class provides Unit Tests for the {@linkplain FishStatJTransformer}.
  *
  * @author Robin Weiss
  */
 public class FishStatJTransformerTest extends AbstractIteratorTransformerTest<FishStatJCollectionVO, DataCiteJson>
 {
     final DiskIO diskReader = new DiskIO(GsonUtils.createGerdiDocumentGsonBuilder().create(), StandardCharsets.UTF_8);
+
+    private static final String MOCKED_RESPONSE_FOLDER = "mockedHttpResponses";
+    private static final String CACHED_COLLECTION_URL = MOCKED_RESPONSE_FOLDER + "/collection.html";
+    private static final String CACHED_CONTACTS_URL = MOCKED_RESPONSE_FOLDER + "/contacts.html";
+    private static final String MOCKED_ZIP_FOLDER_PATH = "mockedUnzipFolder";
 
 
     @Override
@@ -55,10 +61,10 @@ public class FishStatJTransformerTest extends AbstractIteratorTransformerTest<Fi
         final File httpCacheFolder = new File(
             MainContextUtils.getCacheDirectory(FishStatJTransformerTest.class),
             DataOperationConstants.CACHE_FOLDER_PATH);
-        FileUtils.copyFile(getResource("mockedHttpResponses"), httpCacheFolder);
+        FileUtils.copyFile(getResource(MOCKED_RESPONSE_FOLDER), httpCacheFolder);
 
         // copy mocked zip file content
-        FileUtils.copyFile(getResource("mockedUnzipFolder"), getTemporaryUnzipFolder());
+        FileUtils.copyFile(getResource(MOCKED_ZIP_FOLDER_PATH), getTemporaryUnzipFolder());
 
         return super.setUpTestObjects();
     }
@@ -69,8 +75,8 @@ public class FishStatJTransformerTest extends AbstractIteratorTransformerTest<Fi
     {
         return new FishStatJCollectionVO(
                    "http://www.mock.ed/collection",
-                   diskReader.getHtml(getResource("mockedHttpResponses/collection.html").toString()),
-                   diskReader.getHtml(getResource("mockedHttpResponses/contacts.html").toString()),
+                   diskReader.getHtml(getResource(CACHED_COLLECTION_URL).toString()),
+                   diskReader.getHtml(getResource(CACHED_CONTACTS_URL).toString()),
                    getTemporaryUnzipFolder());
     }
 
@@ -93,6 +99,6 @@ public class FishStatJTransformerTest extends AbstractIteratorTransformerTest<Fi
     {
         return new File(
                    MainContextUtils.getCacheDirectory(FishStatJTransformerTest.class),
-                   "unzipped");
+                   FishStatJFileConstants.UNZIP_FOLDER);
     }
 }

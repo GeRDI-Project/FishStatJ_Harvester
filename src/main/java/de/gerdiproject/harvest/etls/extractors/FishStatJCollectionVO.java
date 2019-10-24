@@ -39,10 +39,17 @@ public class FishStatJCollectionVO
 
 
     /**
+     * The original {@linkplain Document#equals(Object)} function does not
+     * compare the actual content of the HTML objects. In order to compare
+     * the {@linkplain FishStatJCollectionVO#collectionPage} and {@linkplain FishStatJCollectionVO#contactsPage},
+     * the {@linkplain Document#hasSameValue(Object)} function is used instead..
      *
+     * @param obj the object that is to be compared to the VO
+     * @return true if the object is equal to this VO
      */
     @Override
-    public boolean equals(Object obj)
+    @SuppressWarnings("PMD.NPathComplexity")
+    public boolean equals(final Object obj)
     {
         if (this == obj)
             return true;
