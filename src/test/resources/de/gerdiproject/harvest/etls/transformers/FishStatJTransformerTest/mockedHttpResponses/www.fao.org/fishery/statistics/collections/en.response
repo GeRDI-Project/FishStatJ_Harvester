@@ -1,0 +1,26 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns:v="urn:schemas-microsoft-com:vml" xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+ <head></head>
+ <body>
+  <div class="lang_en browserOth" id="container">
+   <div id="main">
+    <table id="mainTable">
+     <tbody>
+      <tr valign="top">
+       <td id="mockedRight">
+        <div id="subMockedRight">
+         <div class="textDir">
+          <h3 class="forText">Mocked Group1</h3>
+          <ul>
+           <li><a href="http://www.fao.org/fi/website/FIRetrieveAction.do?dom=collection&amp;xml=mocked.xml&amp;lang=en" title="mocked collection">Mocked Collection</a></li>
+          </ul>
+         </div>
+        </div>
+	   </td>
+      </tr>
+     </tbody>
+    </table>
+   </div>
+  </div>
+ </body>
+</html>

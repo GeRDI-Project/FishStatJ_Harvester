@@ -153,10 +153,13 @@ public class FishStatJFileParser
             if (subStringFrom != -1) {
                 final int subStringTo = text.indexOf(FishStatJFileConstants.DATES_TEXT_EXCLUDED_SUFFIX, subStringFrom);
 
+                // retrieve the text lines that contain dates
                 final String[] dateTextLines = text
                                                .substring(subStringFrom + FishStatJFileConstants.DATES_TEXT_EXCLUDED_PREFIX.length(), subStringTo)
+                                               .trim()
                                                .split("\n");
 
+                // parse each date line
                 final int len = dateTextLines.length;
 
                 for (int i = 0; i < len; i++) {
